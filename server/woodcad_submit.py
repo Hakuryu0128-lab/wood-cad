@@ -365,13 +365,13 @@ class Handler(BaseHTTPRequestHandler):
         if urlparse(self.path).path != "/api/submit":
             return self.send_json(404, {"ok": False, "error": "not found"})
         if not self.cors_origin():
-            return self.send_json(403, {"ok": False, "error": "このページからは送れません"})
+            return self.send_json(403, {"ok": False, "error": "このページからは送信できません"})
 
         ip = self.client_ip()
         now = time.time()
         hist = [t for t in RATE.get(ip, []) if now - t < 600]
         if len(hist) >= CONFIG["max_submits_per_10min"]:
-            return self.send_json(429, {"ok": False, "error": "送りすぎです。少し待ってね"})
+            return self.send_json(429, {"ok": False, "error": "送信の回数が多すぎます。しばらく待ってから送ってください"})
 
         length = int(self.headers.get("Content-Length") or 0)
         if length <= 0 or length > CONFIG["max_body_kb"] * 1024:
