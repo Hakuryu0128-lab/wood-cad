@@ -124,10 +124,10 @@ export default function CutList({ open, boards, stock = [], user, title, space, 
             <table className="cutlist-table stock-table">
               <thead>
                 <tr>
-                  <th>厚み</th>
+                  <th>厚さ</th>
                   <th>幅</th>
-                  <th>生材</th>
-                  <th>必要な長さ（切断分含む）</th>
+                  <th>材料</th>
+                  <th>使う長さ（切りしろを含む）</th>
                   <th>容量</th>
                   <th>判定</th>
                 </tr>
@@ -144,7 +144,7 @@ export default function CutList({ open, boards, stock = [], user, title, space, 
                         {Math.round(u.totalRequired)}mm（{u.count}枚）
                       </td>
                       <td>{u.totalCapacity ?? '—'}</td>
-                      <td>{u.quantity == null ? '—' : u.fits ? 'OK' : '足りない'}</td>
+                      <td>{u.quantity == null ? '—' : u.fits ? 'OK' : '不足'}</td>
                     </tr>
                   )
                 })}
@@ -155,7 +155,7 @@ export default function CutList({ open, boards, stock = [], user, title, space, 
 
         <h3 className="cutlist-subheading">木取り図</h3>
         {groups.length === 0 ? (
-          <p className="cutlist-empty">板がまだありません。板を追加すると自動で一覧に表示されます。</p>
+          <p className="cutlist-empty">板がまだありません。板を追加すると、ここに表示されます。</p>
         ) : (
           <>
             <table className="cutlist-table">
@@ -163,10 +163,10 @@ export default function CutList({ open, boards, stock = [], user, title, space, 
                 <tr>
                   <th>No.</th>
                   <th>木取り図</th>
-                  <th>厚み</th>
+                  <th>厚さ</th>
                   <th>幅</th>
                   <th>長さ</th>
-                  <th>木目方向</th>
+                  <th>木目の向き</th>
                   <th>枚数</th>
                 </tr>
               </thead>

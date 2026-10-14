@@ -22,11 +22,11 @@ export default function SpacePanel({ space, check, onOpen }) {
             枠 {cm(space.width)}×{cm(space.depth)}×{cm(space.height)}cm
           </div>
           <div className={`space-status ${isOver ? 'over' : 'ok'}`}>
-            {!size ? '板を置いてみよう' : isOver ? `はみ出し：${overText}` : '枠の中に入っている'}
+            {!size ? '板を置いてください' : isOver ? `はみ出しています：${overText}` : '枠の中に入っています'}
           </div>
         </>
       ) : (
-        <div className="space-row muted">まだ設定していない</div>
+        <div className="space-row muted">まだ設定されていません</div>
       )}
       {size && (
         <div className="space-row">

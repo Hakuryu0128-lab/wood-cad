@@ -22,8 +22,8 @@ export default function UserModal({ open, initial, onSubmit, onCancel }) {
   return (
     <div className="sheet-backdrop center">
       <form className="sheet modal-card" onSubmit={submit}>
-        <h2>木材CAD</h2>
-        <p className="profile-readout">はじめに番号と名前を入力しよう。次からは入力しなくていいよ。</p>
+        <h2>木工CAD</h2>
+        <p className="profile-readout">はじめに番号と名前を入力してください。次回からは入力する必要はありません。</p>
         <div className="field-grid">
           <label>
             4連番号
@@ -61,7 +61,7 @@ export default function UserModal({ open, initial, onSubmit, onCancel }) {
             </button>
           )}
           <button type="submit" className="btn-primary">
-            はじめる →
+            はじめる
           </button>
         </div>
       </form>

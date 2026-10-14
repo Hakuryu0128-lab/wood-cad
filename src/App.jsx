@@ -1,3 +1,4 @@
+import * as THREE from 'three'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Scene from './Scene'
 import AddBoardPanel from './AddBoardPanel'
@@ -15,7 +16,15 @@ import SaveSelect from './SaveSelect'
 import SubmitSheet from './SubmitSheet'
 import { loadAppConfig, sendSubmission } from './submit'
 import { DEFAULT_SPACE, normalizeSpace, checkSpace } from './space'
-import { groundOffsetY, snapToGrid, rotateQuaternion, IDENTITY_QUATERNION, findVerticalSnap } from './geometry'
+import {
+  groundOffsetY,
+  snapToGrid,
+  rotateQuaternion,
+  IDENTITY_QUATERNION,
+  findVerticalSnap,
+  setOrientationQuaternion,
+  topSurfaceUnder,
+} from './geometry'
 import {
   saveToLocalStorage,
   loadFromLocalStorage,
@@ -66,6 +75,7 @@ export default function App() {
   const [submitThumb, setSubmitThumb] = useState(null)
   const fileInputRef = useRef(null)
   const captureRef = useRef(null)
+  const cameraRef = useRef(null) // DPad を画面の向きで動かすため
   const dirtyRef = useRef(false) // 開いてから変更があったか（開いただけで更新日時を変えないため）
   const timerRef = useRef(null)
   const latestRef = useRef({}) // 自動保存で使う最新の値
@@ -107,7 +117,7 @@ export default function App() {
             id: db.newSaveId(),
             num: u.num,
             name: u.name,
-            title: '前のつづき',
+            title: '前回のつづき',
             boards: legacy.boards,
             space: legacy.space ? normalizeSpace(legacy.space) : { ...DEFAULT_SPACE },
             thumbnail: null,
@@ -198,7 +208,7 @@ export default function App() {
         if (pend && pend.id === rec.id) clearPending()
       }
     } catch {
-      flashMsg('ブラウザに保存できませんでした。「書き出し」でファイルに残してね', 'warn')
+      flashMsg('この端末に保存できませんでした。「書き出し」でファイルに保存してください', 'warn')
     }
   }, [dbOk])
 
@@ -460,7 +470,7 @@ export default function App() {
   const updateBoard = (id, patch) => {
     setBoardsDirty((prev) => {
       const next = prev.map((b) => {
-        if (b.id !== id) return b
+        if (b.id !== id || b.locked) return b
         const merged = { ...b, ...patch }
         // 寸法を変えた場合は板が地面に埋まらないようYを補正
         if (patch.thickness !== undefined || patch.width !== undefined || patch.length !== undefined) {
@@ -479,7 +489,7 @@ export default function App() {
             .filter((x) => x.thickness === b.thickness && x.width === b.width)
             .map((x) => ({ id: x.id, length: x.length }))
           if (!packBars(pieces, entry.stockLength, entry.quantity).fits) {
-            flashMsg('在庫の残りに収まりません（長さを見直してください）', 'warn')
+            flashMsg('材料が足りません。長さを見直してください', 'warn')
           }
         }
       }
@@ -491,13 +501,13 @@ export default function App() {
   // 回転後も「今乗っている高さ」（地面 or 他の板の上）をそのまま保つ。以前は回転のたびに
   // 強制的に地面(y=0)へ戻していたため、他の板の上に乗せた板を回転させると地面まで
   // 落ちてしまう不具合があった。
-  const rotateBoard = (id, axis, deg) => {
+  const applyRotation = (id, makeRotation) => {
     setBoardsDirty((prev) =>
       prev.map((b) => {
-        if (b.id !== id) return b
+        if (b.id !== id || b.locked) return b
         const prevOffset = groundOffsetY(b.length, b.thickness, b.width, b.rotation)
         const bottom = Math.max(0, b.position[1] - prevOffset) // 回転前の底面の高さ
-        const rotation = rotateQuaternion(b.rotation, axis, deg)
+        const rotation = makeRotation(b.rotation)
         const newOffset = groundOffsetY(b.length, b.thickness, b.width, rotation)
         const y = bottom + newOffset
         return { ...b, rotation, position: [b.position[0], y, b.position[2]] }
@@ -505,18 +515,75 @@ export default function App() {
     )
   }
 
+  const rotateBoard = (id, axis, deg) => applyRotation(id, (q) => rotateQuaternion(q, axis, deg))
+
+  // 向きの種類（寝かせる／横に立てる／縦に立てる）を選ぶ。上から見た向きはなるべく保つ
+  const setOrientation = (id, kind) => applyRotation(id, (q) => setOrientationQuaternion(q, kind))
+
+  // 固定する／固定を解除する
+  const toggleLock = (id) => {
+    setBoardsDirty((prev) => prev.map((b) => (b.id === id ? { ...b, locked: !b.locked } : b)))
+  }
+
+  // 選んでいる板を、真下にある板のいちばん上に乗せる（なければ床へ）
+  const placeOnTop = () => {
+    if (!selectedId) return
+    setBoardsDirty((prev) =>
+      prev.map((b) => {
+        if (b.id !== selectedId || b.locked) return b
+        const offset = groundOffsetY(b.length, b.thickness, b.width, b.rotation)
+        const others = prev.filter((o) => o.id !== b.id)
+        const top = topSurfaceUnder({ length: b.length, thickness: b.thickness, width: b.width, rotation: b.rotation }, b.position, others)
+        return { ...b, position: [b.position[0], top + offset, b.position[2]] }
+      })
+    )
+  }
+
+  // 選んでいる板を床に下ろす
+  const placeOnFloor = () => {
+    if (!selectedId) return
+    setBoardsDirty((prev) =>
+      prev.map((b) => {
+        if (b.id !== selectedId || b.locked) return b
+        const offset = groundOffsetY(b.length, b.thickness, b.width, b.rotation)
+        return { ...b, position: [b.position[0], offset, b.position[2]] }
+      })
+    )
+  }
+
   const deleteBoard = (id) => {
-    setBoardsDirty((prev) => prev.filter((b) => b.id !== id))
+    setBoardsDirty((prev) => prev.filter((b) => b.id !== id || b.locked))
     if (selectedId === id) setSelectedId(null)
   }
 
   // 十字キーでの1cmずつの移動。上下移動のときは、近くの板の上面・底面にぴったり乗る
   // 高さがあればそちらへスナップする（1cm刻みだけではぴったり合わせられない高さもあるため）
-  const moveSelected = (dx, dy, dz) => {
+  // DPad から：right=画面の右へ, up=上へ, forward=画面の奥へ（mm）。
+  // 視点の向きに合わせて、いちばん近い X/Z 軸の方向へ変換する
+  const moveSelected = (right, dy, forward) => {
     if (!selectedId) return
+    let fx = 0
+    let fz = -1
+    const cam = cameraRef.current
+    if (cam) {
+      const dir = new THREE.Vector3()
+      cam.getWorldDirection(dir)
+      if (Math.abs(dir.x) > Math.abs(dir.z)) {
+        fx = Math.sign(dir.x)
+        fz = 0
+      } else {
+        fx = 0
+        fz = Math.sign(dir.z) || -1
+      }
+    }
+    // 右方向 = 奥方向 × 上方向
+    const rx = -fz
+    const rz = fx
+    const dx = right * rx + forward * fx
+    const dz = right * rz + forward * fz
     setBoardsDirty((prev) =>
       prev.map((b) => {
-        if (b.id !== selectedId) return b
+        if (b.id !== selectedId || b.locked) return b
         const [x, y, z] = b.position
         const minY = groundOffsetY(b.length, b.thickness, b.width, b.rotation)
         let newY = Math.max(minY, y + dy)
@@ -540,13 +607,25 @@ export default function App() {
   // マウス/タッチでのドラッグ移動中（XZ平面、Yは変更しない）。なめらかに追従させたいので
   // ドラッグ中はスナップしない
   const moveBoardXZ = (id, x, z) => {
-    setBoardsDirty((prev) => prev.map((b) => (b.id === id ? { ...b, position: [x, b.position[1], z] } : b)))
+    setBoardsDirty((prev) => prev.map((b) => (b.id === id && !b.locked ? { ...b, position: [x, b.position[1], z] } : b)))
   }
 
   // ドラッグを離した瞬間に1cm(10mm)グリッドへスナップして確定する
-  const snapBoardXZ = (id) => {
+  // axes: { x, z } … マス目に寄せる方向（ほかの板にそろえた方向は寄せない）
+  const snapBoardXZ = (id, axes = { x: true, z: true }) => {
     setBoardsDirty((prev) =>
-      prev.map((b) => (b.id === id ? { ...b, position: [snapToGrid(b.position[0]), b.position[1], snapToGrid(b.position[2])] } : b))
+      prev.map((b) =>
+        b.id === id && !b.locked
+          ? {
+              ...b,
+              position: [
+                axes.x ? snapToGrid(b.position[0]) : b.position[0],
+                b.position[1],
+                axes.z ? snapToGrid(b.position[2]) : b.position[2],
+              ],
+            }
+          : b
+      )
     )
   }
 
@@ -556,7 +635,7 @@ export default function App() {
     <div className="app">
       <header className="toolbar">
         <div className="toolbar-title">
-          木材CAD{slot && <span className="toolbar-slot">｜{slot.title}</span>}
+          木工CAD{slot && <span className="toolbar-slot">｜{slot.title}</span>}
         </div>
         <div className="toolbar-actions">
           {user && (
@@ -613,14 +692,15 @@ export default function App() {
         space={space}
         outsideIds={spaceCheck.outsideIds}
         captureRef={captureRef}
+        cameraRef={cameraRef}
       />
 
       {!dbOk && screen === 'edit' && (
-        <div className="nodb-banner">この端末ではブラウザに保存できないので、こまめに「書き出し」でファイルに残してね</div>
+        <div className="nodb-banner">この端末ではデータを保存できません。こまめに「書き出し」でファイルに保存してください</div>
       )}
 
       {boards.length === 0 && screen === 'edit' && (
-        <div className="empty-hint">「＋ 板を追加」から最初の板を置いてみよう</div>
+        <div className="empty-hint">「＋ 板を追加」から最初の板を置いてください</div>
       )}
 
       <div className="left-stack">
@@ -635,11 +715,13 @@ export default function App() {
         board={selectedBoard}
         onChange={updateBoard}
         onRotate={rotateBoard}
+        onOrientation={setOrientation}
+        onToggleLock={toggleLock}
         onDelete={deleteBoard}
         onDeselect={() => setSelectedId(null)}
       />
 
-      <DPad visible={!!selectedBoard} onMove={moveSelected} />
+      <DPad visible={!!selectedBoard && !selectedBoard.locked} onMove={moveSelected} onPlaceOnTop={placeOnTop} onPlaceOnFloor={placeOnFloor} />
 
       <AddBoardPanel open={addOpen} onClose={() => setAddOpen(false)} onAdd={addBoard} stock={stock} boards={boards} />
 

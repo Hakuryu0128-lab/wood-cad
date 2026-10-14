@@ -3,11 +3,12 @@ import { Canvas, useThree, useFrame } from '@react-three/fiber'
 import { OrbitControls, Grid, Html } from '@react-three/drei'
 import * as THREE from 'three'
 import Board from './Board'
-import { findFaceSnap } from './geometry'
+import { findFaceSnap, findStackAlign } from './geometry'
 import { cm } from './space'
 
 const SNAP_THRESHOLD = 15 // mm: これより近づいたら面が吸い付く
 const DISPLAY_RADIUS = 250 // mm: これより近ければ距離を表示する
+const DRAG_START_PX = 6 // px: これ以上指が動いたら「ドラッグ」とみなす
 
 // 置き場所の枠。床(y=0)から高さ分の半透明の箱。はみ出しがあれば赤くする。
 // raycast を無効にして、枠の上からでも板をタップ・ドラッグできるようにしている。
@@ -61,14 +62,25 @@ function makeCapture(gl, scene, camera) {
   }
 }
 
-function SceneContents({ boards, selectedId, onSelect, onMoveBoardXZ, onDragEnd, space, outsideIds, captureRef }) {
+function SceneContents({ boards, selectedId, onSelect, onMoveBoardXZ, onDragEnd, space, outsideIds, captureRef, cameraRef }) {
   const { camera, gl, scene } = useThree()
   useEffect(() => {
     if (captureRef) captureRef.current = makeCapture(gl, scene, camera)
-  }, [captureRef, gl, scene, camera])
+    if (cameraRef) cameraRef.current = camera
+  }, [captureRef, cameraRef, gl, scene, camera])
   const controlsRef = useRef()
   const raycasterRef = useRef(new THREE.Raycaster())
-  const dragRef = useRef({ active: false, id: null, plane: new THREE.Plane(), startPoint: new THREE.Vector3(), startPos: [0, 0, 0], snapped: false })
+  const dragRef = useRef({
+    active: false,
+    id: null,
+    plane: new THREE.Plane(),
+    startPoint: new THREE.Vector3(),
+    startPos: [0, 0, 0],
+    startClient: [0, 0],
+    moved: false, // 指（マウス）が少しでも動いたか。タップだけなら板は動かさない
+    alignedX: false, // その方向がほかの板の面・端にそろっているか（そろっている方向はマス目に寄せない）
+    alignedZ: false,
+  })
   const boardsRef = useRef(boards)
   boardsRef.current = boards
   const [snapInfo, setSnapInfo] = useState(null) // { boardId, dist, snapped } | null
@@ -95,14 +107,17 @@ function SceneContents({ boards, selectedId, onSelect, onMoveBoardXZ, onDragEnd,
   // 回転していると判定が外れてカクつくため）。
   const handleDragStart = (id, clientX, clientY) => {
     const board = boardsRef.current.find((b) => b.id === id)
-    if (!board) return
+    if (!board || board.locked) return // 固定した板は動かさない
     dragRef.current.plane.set(new THREE.Vector3(0, 1, 0), -board.position[1])
     const point = intersectDragPlane(clientX, clientY)
     dragRef.current.active = true
     dragRef.current.id = id
     dragRef.current.startPoint = point || new THREE.Vector3(board.position[0], board.position[1], board.position[2])
     dragRef.current.startPos = [...board.position]
-    dragRef.current.snapped = false
+    dragRef.current.startClient = [clientX, clientY]
+    dragRef.current.moved = false
+    dragRef.current.alignedX = false
+    dragRef.current.alignedZ = false
     if (controlsRef.current) controlsRef.current.enabled = false
   }
 
@@ -110,6 +125,12 @@ function SceneContents({ boards, selectedId, onSelect, onMoveBoardXZ, onDragEnd,
     const handleMove = (e) => {
       const drag = dragRef.current
       if (!drag.active) return
+      // タップしただけ（6px未満の動き）では板を動かさない（誤操作で位置がずれないように）
+      if (!drag.moved) {
+        const dist = Math.hypot(e.clientX - drag.startClient[0], e.clientY - drag.startClient[1])
+        if (dist < DRAG_START_PX) return
+        drag.moved = true
+      }
       const point = intersectDragPlane(e.clientX, e.clientY)
       if (!point) return
 
@@ -138,10 +159,28 @@ function SceneContents({ boards, selectedId, onSelect, onMoveBoardXZ, onDragEnd,
           z += best.gap
           if (best.corner != null) x += best.corner
         }
-        drag.snapped = true
-        setSnapInfo({ boardId: drag.id, dist: 0, snapped: true })
+        drag.alignedX = best.axis === 'x' || best.corner != null
+        drag.alignedZ = best.axis === 'z' || best.corner != null
+        setSnapInfo({ boardId: drag.id, dist: 0, snapped: true, kind: 'face' })
       } else {
-        drag.snapped = false
+        // ほかの板の上に乗っているときは、端を下の板の外側の面にそろえる（天板の橋渡し）
+        const align = findStackAlign(
+          { length: board.length, thickness: board.thickness, width: board.width, rotation: board.rotation },
+          [x, board.position[1], z],
+          others,
+          SNAP_THRESHOLD
+        )
+        if (align.dx != null || align.dz != null) {
+          if (align.dx != null) x += align.dx
+          if (align.dz != null) z += align.dz
+          drag.alignedX = align.dx != null
+          drag.alignedZ = align.dz != null
+          setSnapInfo({ boardId: drag.id, dist: 0, snapped: true, kind: 'stack' })
+          onMoveBoardXZ(drag.id, x, z)
+          return
+        }
+        drag.alignedX = false
+        drag.alignedZ = false
         if (nearest && nearest.absGap < DISPLAY_RADIUS) {
           setSnapInfo({ boardId: drag.id, dist: nearest.absGap, snapped: false })
         } else {
@@ -153,8 +192,11 @@ function SceneContents({ boards, selectedId, onSelect, onMoveBoardXZ, onDragEnd,
     }
     const handleUp = () => {
       const drag = dragRef.current
-      if (drag.active && drag.id != null && !drag.snapped) {
-        onDragEnd(drag.id) // 面に吸い付いていなければ1cmグリッドへスナップして確定
+      // 動かしたときだけ、ほかの板にそろっていない方向を1cmのマス目に寄せて確定する。
+      // （以前はタップしただけでもマス目に寄せていたため、面でくっつけた板をタップすると
+      //   位置がずれてすき間ができていた。2026-10-15 修正）
+      if (drag.active && drag.id != null && drag.moved && (!drag.alignedX || !drag.alignedZ)) {
+        onDragEnd(drag.id, { x: !drag.alignedX, z: !drag.alignedZ })
       }
       dragRef.current.active = false
       dragRef.current.id = null
@@ -244,15 +286,19 @@ function SceneContents({ boards, selectedId, onSelect, onMoveBoardXZ, onDragEnd,
         >
           <div
             style={{
-              background: snapInfo.snapped ? '#2f6fed' : 'rgba(0,0,0,0.7)',
+              background: snapInfo.snapped ? 'var(--color-key-900)' : 'var(--color-neutral-solid-gray-900)',
               color: '#fff',
-              fontSize: 11,
+              fontSize: 14,
               padding: '3px 7px',
               borderRadius: 6,
               whiteSpace: 'nowrap',
             }}
           >
-            {snapInfo.snapped ? '面で接続' : `面まで ${(snapInfo.dist / 10).toFixed(1)}cm`}
+            {snapInfo.snapped
+              ? snapInfo.kind === 'stack'
+                ? '端をそろえました'
+                : '面でつながりました'
+              : `面まで ${(snapInfo.dist / 10).toFixed(1)}cm`}
           </div>
         </Html>
       )}
@@ -272,11 +318,11 @@ function SceneContents({ boards, selectedId, onSelect, onMoveBoardXZ, onDragEnd,
 }
 
 // 単位は mm。作業台は400mm四方を想定。
-export default function Scene({ boards, selectedId, onSelect, onDeselect, onMoveBoardXZ, onDragEnd, space, outsideIds, captureRef }) {
+export default function Scene({ boards, selectedId, onSelect, onDeselect, onMoveBoardXZ, onDragEnd, space, outsideIds, captureRef, cameraRef }) {
   return (
     <Canvas
       shadows
-      camera={{ position: [420, 380, 420], fov: 40, near: 1, far: 5000 }}
+      camera={{ position: [240, 400, 540], fov: 40, near: 1, far: 5000 }}
       onPointerMissed={onDeselect}
     >
       <SceneContents
@@ -288,6 +334,7 @@ export default function Scene({ boards, selectedId, onSelect, onDeselect, onMove
         space={space}
         outsideIds={outsideIds}
         captureRef={captureRef}
+        cameraRef={cameraRef}
       />
     </Canvas>
   )

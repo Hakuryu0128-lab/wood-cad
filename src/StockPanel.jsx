@@ -11,7 +11,7 @@ export default function StockPanel({ stock = [], boards = [], onOpen }) {
 
   return (
     <button className="stock-panel" onClick={onOpen}>
-      <div className="stock-panel-title">材料の残り（タップで詳細）</div>
+      <div className="stock-panel-title">材料の残り（タップで詳しく）</div>
       {usage.map((u, i) => (
         <div key={i} className="stock-panel-row">
           <span className="stock-panel-label">

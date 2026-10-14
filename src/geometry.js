@@ -72,7 +72,7 @@ function findCornerAlong(aMin, aMax, bMin, bMax, threshold) {
 // 戻り値: { best, nearest }
 //   best    … 実際にスナップしてよい候補（gapがしきい値未満）。{ axis, gap, corner } の形。なければ null
 //   nearest … 表示用の、もっとも近い有効な面ペア。なければ null
-export function findFaceSnap(draggedSpec, candidatePos, others, snapThreshold = 15, yTolerance = 20) {
+export function findFaceSnap(draggedSpec, candidatePos, others, snapThreshold = 15) {
   const A = boardBox(draggedSpec.length, draggedSpec.thickness, draggedSpec.width, draggedSpec.rotation, candidatePos)
 
   let best = null
@@ -80,8 +80,11 @@ export function findFaceSnap(draggedSpec, candidatePos, others, snapThreshold = 
 
   for (const other of others) {
     const B = boardBox(other.length, other.thickness, other.width, other.rotation, other.position)
-    const overlapsY = A.max.y >= B.min.y - yTolerance && A.min.y <= B.max.y + yTolerance
-    if (!overlapsY) continue
+    // 側面どうしでくっつくのは、高さが実際に重なっている（横に並んでいる）板だけ。
+    // 以前は上下に20mmの余裕を持たせていたため、壁の上に乗せた天板まで「横に並んでいる」と
+    // みなされ、天板の端が壁の内側の面に吸い付いて横にずれていた（2026-10-15 修正）。
+    const yOverlap = Math.min(A.max.y, B.max.y) - Math.max(A.min.y, B.min.y)
+    if (yOverlap <= MIN_OVERLAP) continue
 
     const candidates = []
 
@@ -157,4 +160,84 @@ export function findVerticalSnap(draggedSpec, candidatePos, others, snapThreshol
   }
 
   return best
+}
+
+// 上に乗せた板の端そろえ：ドラッグ中の板が別の板の上にちょうど乗っている（または真下にくっついている）とき、
+// 上の板の端を下の板の外側の面にそろえる（天板の端を側板の外面と面一にする「橋渡し」用）。
+// X方向・Z方向それぞれで、しきい値以内のいちばん近いそろえ位置を探す。
+// 戻り値: { dx, dz }（そろえる量。そろえる所がなければ null）
+export function findStackAlign(draggedSpec, candidatePos, others, snapThreshold = 15) {
+  const A = boardBox(draggedSpec.length, draggedSpec.thickness, draggedSpec.width, draggedSpec.rotation, candidatePos)
+  let dx = null
+  let dz = null
+  for (const other of others) {
+    const B = boardBox(other.length, other.thickness, other.width, other.rotation, other.position)
+    const touching = Math.abs(A.min.y - B.max.y) < 1 || Math.abs(A.max.y - B.min.y) < 1
+    if (!touching) continue
+    const xOverlap = Math.min(A.max.x, B.max.x) - Math.max(A.min.x, B.min.x)
+    const zOverlap = Math.min(A.max.z, B.max.z) - Math.max(A.min.z, B.min.z)
+    if (xOverlap <= MIN_OVERLAP || zOverlap <= MIN_OVERLAP) continue
+    for (const d of [B.min.x - A.min.x, B.max.x - A.max.x]) {
+      if (Math.abs(d) < snapThreshold && (dx == null || Math.abs(d) < Math.abs(dx))) dx = d
+    }
+    for (const d of [B.min.z - A.min.z, B.max.z - A.max.z]) {
+      if (Math.abs(d) < snapThreshold && (dz == null || Math.abs(d) < Math.abs(dz))) dz = d
+    }
+  }
+  return { dx, dz }
+}
+
+// 「上に乗せる」：真下（上から見て重なる位置）にある板のうち、いちばん高い上面の高さを返す。
+// 重なる板がなければ 0（床）。
+export function topSurfaceUnder(draggedSpec, candidatePos, others) {
+  const A = boardBox(draggedSpec.length, draggedSpec.thickness, draggedSpec.width, draggedSpec.rotation, candidatePos)
+  let top = 0
+  for (const other of others) {
+    const B = boardBox(other.length, other.thickness, other.width, other.rotation, other.position)
+    const xOverlap = Math.min(A.max.x, B.max.x) - Math.max(A.min.x, B.min.x)
+    const zOverlap = Math.min(A.max.z, B.max.z) - Math.max(A.min.z, B.min.z)
+    if (xOverlap > MIN_OVERLAP && zOverlap > MIN_OVERLAP) top = Math.max(top, B.max.y)
+  }
+  return top
+}
+
+// ---- 板の向き（寝かせる／横に立てる／縦に立てる） ----
+// 板は (長さ, 厚み, 幅) = ローカル (X, Y, Z)。
+//   flat    寝かせる   … 厚みが上下（床に平らに置いた状態）
+//   side    横に立てる … 幅が上下（長い辺が横の「壁」）
+//   upright 縦に立てる … 長さが上下（長い辺が縦の「柱」）
+// 向きの基本形に、上から見た向き（水平の回転 0/90/180/270°）を組み合わせて表す。
+const BASE = {
+  flat: [0, 0, 0, 1],
+  side: null, // 下で計算
+  upright: null,
+}
+BASE.side = rotateQuaternion(IDENTITY_QUATERNION, 'x', 90)
+BASE.upright = rotateQuaternion(IDENTITY_QUATERNION, 'z', 90)
+
+function localAxisWorld(quaternion, axis) {
+  const v = axis === 'x' ? new THREE.Vector3(1, 0, 0) : axis === 'y' ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(0, 0, 1)
+  return v.applyQuaternion(new THREE.Quaternion(quaternion[0], quaternion[1], quaternion[2], quaternion[3]))
+}
+
+// 今の向きの種類
+export function getOrientation(quaternion) {
+  const q = quaternion || IDENTITY_QUATERNION
+  if (Math.abs(localAxisWorld(q, 'y').y) > 0.9) return 'flat'
+  if (Math.abs(localAxisWorld(q, 'z').y) > 0.9) return 'side'
+  return 'upright'
+}
+
+// 上から見た向き（0/90/180/270°）。flat/side は長さの向き、upright は幅の向きで測る
+function headingOf(quaternion, kind) {
+  const v = kind === 'upright' ? localAxisWorld(quaternion, 'z') : localAxisWorld(quaternion, 'x')
+  const deg = kind === 'upright' ? (Math.atan2(v.x, v.z) * 180) / Math.PI : (Math.atan2(-v.z, v.x) * 180) / Math.PI
+  return (((Math.round(deg / 90) * 90) % 360) + 360) % 360
+}
+
+// 向きの種類を変える。上から見た向きはなるべく保つ
+export function setOrientationQuaternion(quaternion, kind) {
+  const current = getOrientation(quaternion)
+  const heading = headingOf(quaternion || IDENTITY_QUATERNION, current)
+  return rotateQuaternion(BASE[kind], 'y', heading)
 }

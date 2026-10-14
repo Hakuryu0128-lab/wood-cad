@@ -40,10 +40,10 @@ export default function SubmitSheet({ open, owner, title, boardCount, thumbnail,
         {state === 'done' ? (
           <div className="submit-done">
             <div className="submit-check">✓</div>
-            <h2>先生に送ったよ</h2>
-            <p className="profile-readout">{formatTime(doneAt)} に届きました。直したら、もう一度送ってもいいよ。</p>
+            <h2>先生に送りました</h2>
+            <p className="profile-readout">{formatTime(doneAt)} に届きました。設計を直したときは、もう一度送ることができます。</p>
             <button className="btn-primary wide" onClick={onClose}>
-              とじる
+              閉じる
             </button>
           </div>
         ) : (
@@ -59,22 +59,22 @@ export default function SubmitSheet({ open, owner, title, boardCount, thumbnail,
               {title} ・ 板 {boardCount}枚
               {lastSubmittedAt && <> ・ 前回 {formatTime(lastSubmittedAt)} に送信</>}
             </div>
-            {boardCount === 0 && <p className="add-error">まだ板がないよ。板を置いてから送ろう。</p>}
+            {boardCount === 0 && <p className="add-error">板がまだありません。板を置いてから送ってください。</p>}
             {state === 'error' && (
               <p className="add-error">
-                送れなかった：{error}。もう一度押してみてね。だめなら先生に言おう。
+                送ることができませんでした（{error}）。もう一度「送る」を押してください。それでも送れないときは、先生に伝えてください。
               </p>
             )}
             <div className="sheet-actions">
               <button className="btn-secondary" onClick={onClose} disabled={state === 'sending'}>
-                やめる
+                キャンセル
               </button>
               <button className="btn-primary" onClick={send} disabled={state === 'sending' || boardCount === 0}>
-                {state === 'sending' ? '送っています…' : '送る'}
+                {state === 'sending' ? '送信しています…' : '送る'}
               </button>
             </div>
             <button className="link-btn" onClick={onExport}>
-              ファイルに書き出す（予備）
+              ファイルに書き出す（予備の保存）
             </button>
           </>
         )}

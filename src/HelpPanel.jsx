@@ -26,11 +26,11 @@ export default function HelpPanel() {
           ×
         </button>
       </div>
-      <div className="help-row"><span className="help-key">板をドラッグ</span>板を水平に動かす（近づけると面がくっつく）</div>
-      <div className="help-row"><span className="help-key">板をタップ</span>選ぶ → 右で長さ・木目・回転、右下で1cmずつ移動・上下</div>
-      <div className="help-row"><span className="help-key">何もない所を1本指</span>見る向きを回す</div>
-      <div className="help-row"><span className="help-key">2本指</span>ずらす・ズーム（ピンチ）</div>
-      <div className="help-row"><span className="help-key">マウス</span>右ドラッグ＝ずらす、ホイール＝ズーム</div>
+      <div className="help-row"><span className="help-key">板をドラッグ</span>板を水平に動かします。ほかの板に近づけると、面がぴったりくっつきます</div>
+      <div className="help-row"><span className="help-key">板をタップ</span>板を選びます。右のパネルで長さ・木目・向きを変え、右下のボタンで1cmずつ動かします</div>
+      <div className="help-row"><span className="help-key">何もない所を1本指</span>見る向きを変えます</div>
+      <div className="help-row"><span className="help-key">2本指</span>画面をずらします。指を広げる・閉じるで拡大・縮小します</div>
+      <div className="help-row"><span className="help-key">マウス</span>右ボタンでドラッグすると画面をずらし、ホイールで拡大・縮小します</div>
     </div>
   )
 }

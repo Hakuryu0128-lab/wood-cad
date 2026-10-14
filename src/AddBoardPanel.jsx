@@ -41,7 +41,7 @@ export default function AddBoardPanel({ open, onClose, onAdd, stock = [] , board
     }
     const ok = canAddLength(stock, boards, { thickness: profile.thickness, width: profile.width, length: len })
     if (!ok) {
-      setError('在庫が足りません。他の板の長さを見直すか、この長さでは追加できません。')
+      setError('材料が足りないため、この長さでは追加できません。ほかの板の長さを見直してください。')
       return
     }
     onAdd({ thickness: profile.thickness, width: profile.width, length: len })
@@ -53,9 +53,9 @@ export default function AddBoardPanel({ open, onClose, onAdd, stock = [] , board
       <div className="sheet" onClick={(e) => e.stopPropagation()}>
         {!profile ? (
           <>
-            <h2>板を追加：種類を選ぶ</h2>
+            <h2>板を追加：材料を選ぶ</h2>
             {stock.length === 0 ? (
-              <p className="cutlist-empty">在庫を読み込み中…</p>
+              <p className="cutlist-empty">材料を読み込んでいます…</p>
             ) : (
               <div className="preset-row">
                 {stock.map((s) => (
@@ -64,10 +64,10 @@ export default function AddBoardPanel({ open, onClose, onAdd, stock = [] , board
                     className="chip profile-chip"
                     onClick={() => selectProfile(s)}
                   >
-                    厚み{s.thickness}×幅{s.width}
+                    厚さ{s.thickness}×幅{s.width}
                     {s.quantity != null && (
                       <span className="profile-chip-sub">
-                        {s.stockLength}mm材 ×{s.quantity}本
+                        長さ{s.stockLength}mmの材料 ×{s.quantity}本
                       </span>
                     )}
                   </button>
@@ -84,12 +84,12 @@ export default function AddBoardPanel({ open, onClose, onAdd, stock = [] , board
           <>
             <h2>板を追加：長さを決める</h2>
             <p className="profile-readout">
-              厚み {profile.thickness}mm ・ 幅 {profile.width}mm（固定）
+              厚さ {profile.thickness}mm × 幅 {profile.width}mm（変更できません）
             </p>
 
             <div className="field-grid">
               <label>
-                長さ (mm)
+                長さ（mm）
                 <input
                   type="number"
                   min="1"
@@ -107,10 +107,10 @@ export default function AddBoardPanel({ open, onClose, onAdd, stock = [] , board
 
             <div className="sheet-actions">
               <button className="btn-secondary" onClick={back}>
-                ← 種類を選び直す
+                ← 材料を選び直す
               </button>
               <button className="btn-primary" onClick={handleAdd}>
-                この板を追加
+                この板を追加する
               </button>
             </div>
           </>

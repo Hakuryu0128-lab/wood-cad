@@ -23,8 +23,9 @@ export default function PartsList({ boards, selectedId, outsideIds, onSelect }) 
               <span className="parts-no">{i + 1}</span>
               <span>
                 {b.thickness}×{b.width}×{b.length}
-                <span className="parts-sub"> 木目:{b.grainAxis === 'X' ? '長さ' : '幅'}</span>
+                <span className="parts-sub"> 木目：{b.grainAxis === 'X' ? '長さ方向' : '幅方向'}</span>
               </span>
+              {b.locked && <span className="parts-lock">固定</span>}
             </button>
           ))}
         </div>

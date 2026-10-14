@@ -24,8 +24,8 @@ function SaveCard({ save, current, showOwner, onOpen, onDuplicate, onRename, onD
   return (
     <div className={`save-card ${current ? 'current' : ''}`}>
       <button className="save-thumb" onClick={() => onOpen(save.id)} aria-label={`${save.title}を開く`}>
-        {save.thumbnail ? <img src={save.thumbnail} alt="" /> : <span className="save-thumb-empty">まだ板がない</span>}
-        {current && <span className="save-current-badge">いま開いている</span>}
+        {save.thumbnail ? <img src={save.thumbnail} alt="" /> : <span className="save-thumb-empty">板はまだありません</span>}
+        {current && <span className="save-current-badge">開いているデータ</span>}
       </button>
       <div className="save-info">
         {renaming ? (
@@ -60,7 +60,7 @@ function SaveCard({ save, current, showOwner, onOpen, onDuplicate, onRename, onD
           </button>
           {confirmDelete ? (
             <button className="btn-danger-small" onClick={() => onDelete(save.id)} onBlur={() => setConfirmDelete(false)}>
-              本当に消す
+              本当に削除
             </button>
           ) : (
             <button className="btn-secondary small" onClick={() => setConfirmDelete(true)}>
@@ -95,12 +95,12 @@ export default function SaveSelect({
         <div className="save-head">
           <div>
             <h2>セーブデータ</h2>
-            <p className="profile-readout">開くデータを選ぼう。編集すると自動で保存されるよ。</p>
+            <p className="profile-readout">開くデータを選んでください。編集した内容は自動で保存されます。</p>
           </div>
           <div className="save-head-right">
             {user && (
               <button className="user-chip" onClick={onChangeUser} title="番号・名前を変える">
-                {user.num} {user.name}（変更）
+                {user.num} {user.name}（変更する）
               </button>
             )}
             {onClose && (
@@ -120,12 +120,12 @@ export default function SaveSelect({
           </button>
           <label className="save-showall">
             <input type="checkbox" checked={showAll} onChange={(e) => onToggleShowAll(e.target.checked)} />
-            ほかの人のデータも表示
+            ほかの人のデータも表示する
           </label>
         </div>
 
         {saves.length === 0 ? (
-          <p className="cutlist-empty">まだセーブデータがないよ。「＋ 新しく作る」から始めよう。</p>
+          <p className="cutlist-empty">セーブデータはまだありません。「＋ 新しく作る」から始めてください。</p>
         ) : (
           <div className="save-grid">
             {saves.map((s) => (
@@ -145,7 +145,7 @@ export default function SaveSelect({
         )}
 
         <p className="save-note">
-          セーブデータはこのiPad（ブラウザ）の中だけに保存されるよ。別の端末で続きをするときは「書き出し」でファイルにしてね。
+          セーブデータはこのiPadの中だけに保存されます。別の端末で続きをするときは、「書き出し」でファイルに保存してください。
         </p>
       </div>
     </div>
