@@ -1,0 +1,12 @@
+node_modules/
+dist/
+_backup_*/
+*.log
+# 生徒の提出データと、先生用パスワードの入った設定はリポジトリに入れない
+server/config.json
+server/submissions/
+# 手元で保存した設計ファイル
+/*.json
+!/package.json
+!/package-lock.json
+__pycache__/
