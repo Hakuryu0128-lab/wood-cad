@@ -228,7 +228,7 @@ def render_page(day, latest_only):
                 f"""<div class="card">{img}<div class="info">
 <div class="who">{html.escape(it['num'])} {html.escape(it['name'])}</div>
 <div class="sub">{html.escape(it['title'])} ・ {t[:2]}:{t[2:4]} ・ 板{it['boards']}枚 ・ {html.escape(size_txt)}</div>
-{tag(s.get('fitsSpace'), '置き場所に入る', '置き場所からはみ出し', '置き場所：設定なし')}{tag(s.get('stockOk'), '材料OK', '材料が足りない', '材料：—')}
+{tag(s.get('fitsSpace'), '置き場所に収まる', '置き場所より大きい', '置き場所：設定なし')}{tag(s.get('stockOk'), '材料OK', '材料が足りない', '材料：—')}
 <div><a class="btn" href="/file?f={quote(it['file'])}&dl=1">ダウンロード</a></div>
 </div></div>"""
             )
