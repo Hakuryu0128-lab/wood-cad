@@ -101,7 +101,7 @@ export default function CutList({ open, boards, stock = [], user, title, space, 
                   <td>{cm(space.depth)}cm</td>
                   <td>{cm(space.height)}cm</td>
                   <td rowSpan={spaceCheck?.size ? 2 : 1}>
-                    {!spaceCheck?.size ? '—' : spaceCheck.outsideIds.size > 0 ? 'はみ出し' : '入る'}
+                    {!spaceCheck?.size ? '—' : spaceCheck.outsideIds.size > 0 ? '大きすぎる' : '収まる'}
                   </td>
                 </tr>
               )}

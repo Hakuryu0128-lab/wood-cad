@@ -4,7 +4,7 @@ import { cm } from './space'
 export default function SpacePanel({ space, check, onOpen }) {
   const size = check.size
   const over = check.overflow
-  const isOver = space.enabled && check.outsideIds.size > 0
+  const isOver = space.enabled && (over.width > 0 || over.depth > 0 || over.height > 0)
   const overText = [
     over.width > 0 && `幅 ${cm(over.width)}cm`,
     over.depth > 0 && `奥行き ${cm(over.depth)}cm`,
@@ -15,14 +15,14 @@ export default function SpacePanel({ space, check, onOpen }) {
 
   return (
     <button className={`side-card space-panel ${isOver ? 'is-over' : ''}`} onClick={onOpen}>
-      <div className="stock-panel-title">置き場所（タップで設定）</div>
+      <div className="stock-panel-title">置き場所 ›</div>
       {space.enabled ? (
         <>
           <div className="space-row">
             枠 {cm(space.width)}×{cm(space.depth)}×{cm(space.height)}cm
           </div>
           <div className={`space-status ${isOver ? 'over' : 'ok'}`}>
-            {!size ? '板を置いてください' : isOver ? `はみ出しています：${overText}` : '枠の中に入っています'}
+            {!size ? '板を置いてください' : isOver ? `枠より大きいです：${overText}` : '枠に収まる大きさです'}
           </div>
         </>
       ) : (

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { getOrientation } from './geometry'
 
 // 選んでいる板の設定パネル（右上）。
@@ -30,6 +31,8 @@ const ORIENTATIONS = [
 ]
 
 export default function Inspector({ board, onChange, onRotate, onOrientation, onToggleLock, onDelete, onDeselect }) {
+  // たたむと見出しだけの細い帯になり、3Dの作業領域が広がる
+  const [collapsed, setCollapsed] = useState(false)
   if (!board) return null
 
   const orientation = getOrientation(board.rotation)
@@ -43,16 +46,25 @@ export default function Inspector({ board, onChange, onRotate, onOrientation, on
     <div className="inspector" role="region" aria-label="選択中の板">
       <div className="inspector-header">
         <span className="inspector-title">選択中の板</span>
-        {!board.locked && (
-          <button className="lock-btn" onClick={() => onToggleLock(board.id)}>
-            固定する
+        {!board.locked && !collapsed && (
+          <button className="lock-btn" onClick={() => onToggleLock(board.id)} aria-label="この板を固定する">
+            固定
           </button>
         )}
+        <button
+          className="icon-btn small"
+          onClick={() => setCollapsed(!collapsed)}
+          aria-expanded={!collapsed}
+          aria-label={collapsed ? 'パネルを開く' : 'パネルをたたむ'}
+        >
+          {collapsed ? '▼' : '▲'}
+        </button>
         <button className="icon-btn" onClick={onDeselect} aria-label="選択をやめる">
           ×
         </button>
       </div>
 
+      <div className="inspector-body" hidden={collapsed}>
       <p className="profile-readout">
         厚さ {board.thickness}mm × 幅 {board.width}mm × 長さ {board.length}mm
       </p>
@@ -128,6 +140,7 @@ export default function Inspector({ board, onChange, onRotate, onOrientation, on
           </button>
         </>
       )}
+      </div>
     </div>
   )
 }

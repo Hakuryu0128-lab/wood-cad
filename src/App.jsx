@@ -690,6 +690,7 @@ export default function App() {
         onMoveBoardXZ={moveBoardXZ}
         onDragEnd={snapBoardXZ}
         space={space}
+        spaceCheck={spaceCheck}
         outsideIds={spaceCheck.outsideIds}
         captureRef={captureRef}
         cameraRef={cameraRef}

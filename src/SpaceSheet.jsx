@@ -36,7 +36,7 @@ export default function SpaceSheet({ open, space, onSave, onClose }) {
       <div className="sheet" onClick={(e) => e.stopPropagation()}>
         <h2>置き場所の大きさ</h2>
         <p className="profile-readout">
-          写真で測った「置きたい場所」の大きさを入力してください。画面の中央に半透明の枠が表示され、枠からはみ出した板は赤くなります。
+          写真で測った「置きたい場所」の大きさを入力してください。作品の真ん中に合わせて枠が表示され、作品が枠より大きいと赤くなります。
         </p>
         <div className="field-grid">
           <label>

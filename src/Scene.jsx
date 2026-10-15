@@ -13,29 +13,33 @@ const DRAG_START_PX = 6 // px: これ以上指が動いたら「ドラッグ」�
 // 置き場所の枠。床(y=0)から高さ分の半透明の箱。はみ出しがあれば赤くする。
 // raycast を無効にして、枠の上からでも板をタップ・ドラッグできるようにしている。
 const noRaycast = () => null
-function SpaceFrame({ space, over }) {
+function SpaceFrame({ space, over, center }) {
   const { width, depth, height } = space
   const edges = useMemo(() => new THREE.EdgesGeometry(new THREE.BoxGeometry(width, height, depth)), [width, height, depth])
-  const color = over ? '#e53935' : '#2f6fed'
+  // ふだんは枠線だけ（作業のじゃまにならないように薄く）。大きさがオーバーしたときだけ赤い警告表示
+  const color = over ? '#ec0000' : '#0017c1'
   return (
-    <group position={[0, height / 2, 0]}>
-      <mesh raycast={noRaycast} renderOrder={2}>
-        <boxGeometry args={[width, height, depth]} />
-        <meshBasicMaterial color={color} transparent opacity={over ? 0.12 : 0.07} depthWrite={false} />
-      </mesh>
+    <group position={center}>
+      {over && (
+        <mesh raycast={noRaycast} renderOrder={2}>
+          <boxGeometry args={[width, height, depth]} />
+          <meshBasicMaterial color={color} transparent opacity={0.12} depthWrite={false} />
+        </mesh>
+      )}
       <lineSegments geometry={edges} raycast={noRaycast}>
-        <lineBasicMaterial color={color} transparent opacity={0.9} />
+        <lineBasicMaterial color={color} transparent opacity={over ? 0.9 : 0.45} />
       </lineSegments>
-      {/* 床の上の枠線（上から見たときにも分かるように少し浮かせる） */}
-      <mesh raycast={noRaycast} position={[0, -height / 2 + 0.5, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[width, depth]} />
-        <meshBasicMaterial color={color} transparent opacity={0.1} depthWrite={false} />
-      </mesh>
+      {over && (
+        <mesh raycast={noRaycast} position={[0, -height / 2 + 0.5, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[width, depth]} />
+          <meshBasicMaterial color={color} transparent opacity={0.1} depthWrite={false} />
+        </mesh>
+      )}
       {/* ラベルは手前の床の位置に置く（奥の上だと画面上部のボタンと重なるため）。
           zIndexRange を低くして、ボタンやパネルより下に描く */}
       <Html position={[0, -height / 2, depth / 2 + 14]} center zIndexRange={[5, 0]} style={{ pointerEvents: 'none' }}>
         <div className={`frame-label ${over ? 'over' : ''}`}>
-          置き場所 {cm(width)}×{cm(depth)}×{cm(height)}cm{over ? '（はみ出し）' : ''}
+          置き場所 {cm(width)}×{cm(depth)}×{cm(height)}cm{over ? '（作品が大きすぎます）' : ''}
         </div>
       </Html>
     </group>
@@ -62,7 +66,7 @@ function makeCapture(gl, scene, camera) {
   }
 }
 
-function SceneContents({ boards, selectedId, onSelect, onMoveBoardXZ, onDragEnd, space, outsideIds, captureRef, cameraRef }) {
+function SceneContents({ boards, selectedId, onSelect, onMoveBoardXZ, onDragEnd, space, spaceCheck, outsideIds, captureRef, cameraRef }) {
   const { camera, gl, scene } = useThree()
   useEffect(() => {
     if (captureRef) captureRef.current = makeCapture(gl, scene, camera)
@@ -275,7 +279,13 @@ function SceneContents({ boards, selectedId, onSelect, onMoveBoardXZ, onDragEnd,
         />
       ))}
 
-      {space.enabled && <SpaceFrame space={space} over={outsideIds.size > 0} />}
+      {space.enabled && (
+        <SpaceFrame
+          space={space}
+          center={spaceCheck.frame.center}
+          over={spaceCheck.overflow.width > 0 || spaceCheck.overflow.depth > 0 || spaceCheck.overflow.height > 0}
+        />
+      )}
 
       {snapBoard && snapInfo && (
         <Html
@@ -318,7 +328,7 @@ function SceneContents({ boards, selectedId, onSelect, onMoveBoardXZ, onDragEnd,
 }
 
 // 単位は mm。作業台は400mm四方を想定。
-export default function Scene({ boards, selectedId, onSelect, onDeselect, onMoveBoardXZ, onDragEnd, space, outsideIds, captureRef, cameraRef }) {
+export default function Scene({ boards, selectedId, onSelect, onDeselect, onMoveBoardXZ, onDragEnd, space, spaceCheck, outsideIds, captureRef, cameraRef }) {
   return (
     <Canvas
       shadows
@@ -332,6 +342,7 @@ export default function Scene({ boards, selectedId, onSelect, onDeselect, onMove
         onMoveBoardXZ={onMoveBoardXZ}
         onDragEnd={onDragEnd}
         space={space}
+        spaceCheck={spaceCheck}
         outsideIds={outsideIds}
         captureRef={captureRef}
         cameraRef={cameraRef}

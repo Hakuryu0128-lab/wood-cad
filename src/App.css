@@ -309,10 +309,29 @@ button {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  min-height: 64px;
-  padding: 8px 16px;
+  min-height: 56px;
+  padding: 6px 12px;
   background: var(--color-neutral-white);
   border-bottom: 1px solid var(--color-neutral-solid-gray-420);
+}
+
+/* ツールバーのボタンは DADS の sm 相当（見た目40px・押せる範囲44px）にして、3Dの作業領域を広げる */
+.toolbar .btn-primary,
+.toolbar .btn-secondary,
+.toolbar .btn-send {
+  position: relative;
+  min-height: 40px;
+  padding: 4px 12px;
+  font-size: 15px;
+}
+.toolbar .btn-primary::after,
+.toolbar .btn-secondary::after,
+.toolbar .btn-send::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  height: 44px;
 }
 
 .toolbar-title {
@@ -339,7 +358,7 @@ button {
 }
 
 .user-chip {
-  min-height: 44px;
+  min-height: 40px;
   max-width: 200px;
   padding: 0 12px;
   border: 1px solid var(--color-neutral-solid-gray-420);
@@ -385,14 +404,14 @@ button {
 /* 左側に縦に積むパネル（材料の残り・置き場所・板の一覧） */
 .left-stack {
   position: absolute;
-  top: 76px;
-  left: 12px;
+  top: 64px;
+  left: 8px;
   z-index: 10;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  width: 260px;
-  max-height: calc(100% - 152px);
+  gap: 6px;
+  width: 210px;
+  max-height: calc(100% - 128px);
   pointer-events: none;
 }
 .left-stack > * {
@@ -403,7 +422,7 @@ button {
 .space-panel {
   display: block;
   width: 100%;
-  padding: 12px;
+  padding: 8px 10px;
   text-align: left;
   cursor: pointer;
   color: inherit;
@@ -452,7 +471,7 @@ button {
   color: var(--color-neutral-solid-gray-600);
 }
 .space-status {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: bold;
   line-height: 1.5;
   margin: 4px 0;
@@ -481,8 +500,8 @@ button {
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  min-height: 48px;
-  padding: 0 12px;
+  min-height: 44px;
+  padding: 0 10px;
   border: none;
   background: transparent;
   font-size: 14px;
@@ -502,8 +521,8 @@ button {
 .parts-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-height: 48px;
+  gap: 6px;
+  min-height: 44px;
   padding: 4px 8px;
   border-radius: 8px;
   border: 1px solid var(--color-neutral-solid-gray-420);
@@ -525,8 +544,8 @@ button {
 }
 .parts-no {
   flex-shrink: 0;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: var(--color-primitive-orange-800);
   color: var(--color-neutral-white);
@@ -556,13 +575,13 @@ button {
 /* ===== 選択中の板（右上） ===== */
 .inspector {
   position: absolute;
-  top: 76px;
-  right: 12px;
+  top: 64px;
+  right: 8px;
   z-index: 10;
-  width: 320px;
-  max-height: calc(100% - 76px - 256px);
+  width: 256px;
+  max-height: calc(100% - 64px - 196px);
   overflow-y: auto;
-  padding: 12px 16px 16px;
+  padding: 6px 12px 10px;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
 }
@@ -576,8 +595,11 @@ button {
   margin-right: auto;
 }
 .lock-btn {
-  min-height: 44px;
-  padding: 0 12px;
+  position: relative;
+  flex-shrink: 0;
+  white-space: nowrap;
+  min-height: 36px;
+  padding: 0 10px;
   border: 1px solid var(--color-neutral-solid-gray-800);
   border-radius: 8px;
   background: var(--color-neutral-white);
@@ -589,11 +611,41 @@ button {
 .lock-btn:active {
   background: var(--color-neutral-solid-gray-100);
 }
+.lock-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  height: 44px;
+}
 .inspector .field {
-  margin-bottom: 12px;
+  margin-bottom: 8px;
+  gap: 2px;
+}
+.inspector .field-label {
+  font-size: 14px;
+}
+.inspector .dads-input {
+  height: 40px;
+}
+.inspector .segmented button {
+  min-height: 40px;
+  font-size: 14px;
+}
+.inspector .dads-btn {
+  min-height: 40px;
+  padding: 4px 12px;
+  font-size: 14px;
+}
+.inspector .dads-btn + .dads-btn {
+  margin-top: 4px;
+}
+.inspector-body[hidden] {
+  display: none;
 }
 .inspector-title {
-  font-size: 18px;
+  font-size: 16px;
+  white-space: nowrap;
   font-weight: bold;
   color: var(--color-neutral-solid-gray-900);
 }
@@ -620,16 +672,20 @@ button {
 .orient-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.orient-btn svg {
+  width: 48px;
+  height: 38px;
 }
 .orient-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  min-height: 84px;
-  padding: 4px 2px;
+  min-height: 64px;
+  padding: 2px;
   white-space: nowrap;
   border: 1px solid var(--color-neutral-solid-gray-420);
   border-radius: 8px;
@@ -652,44 +708,69 @@ button {
 /* ===== 1cmずつ動かす（右下） ===== */
 .dpad {
   position: absolute;
-  bottom: 16px;
-  right: 12px;
+  bottom: 8px;
+  right: 8px;
   z-index: 10;
-  padding: 8px 12px 12px;
+  padding: 4px 8px 8px;
   display: grid;
   grid-template-columns: auto auto;
   grid-template-rows: auto auto auto;
-  column-gap: 12px;
-  row-gap: 8px;
+  column-gap: 8px;
+  row-gap: 4px;
   align-items: start;
 }
 .dpad-label {
   grid-column: 1 / 3;
+  justify-self: start;
+  min-height: 32px;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
   font-size: 14px;
   font-weight: bold;
   color: var(--color-neutral-solid-gray-700);
+  cursor: pointer;
+}
+.dpad-collapsed {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  z-index: 10;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--color-neutral-solid-gray-420);
+  border-radius: 12px;
+  background: var(--color-neutral-white);
+  box-shadow: var(--elevation-1);
+  color: var(--color-neutral-solid-gray-800);
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+}
+.icon-btn.small {
+  font-size: 16px;
 }
 .dpad-grid {
   grid-row: 2 / 4;
   display: grid;
-  grid-template-columns: repeat(3, 56px);
-  grid-template-rows: repeat(3, 56px);
-  gap: 4px;
+  grid-template-columns: repeat(3, 44px);
+  grid-template-rows: repeat(3, 44px);
+  gap: 2px;
 }
 .dpad-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 4px;
-  width: 200px;
+  width: 188px;
 }
 .dpad-btn {
-  min-width: 56px;
-  min-height: 56px;
+  min-width: 44px;
+  min-height: 44px;
   border-radius: 8px;
   border: 1px solid var(--color-key-900);
   background: var(--color-neutral-white);
   color: var(--color-key-900);
-  font-size: 20px;
+  font-size: 18px;
   font-weight: bold;
   cursor: pointer;
 }
@@ -701,6 +782,7 @@ button {
   font-size: 14px;
   line-height: 1.3;
   padding: 2px 4px;
+  white-space: nowrap;
 }
 .dpad-btn:active {
   background: var(--color-key-300);
@@ -710,7 +792,7 @@ button {
   align-items: center;
   justify-content: center;
   text-align: center;
-  font-size: 14px;
+  font-size: 12px;
   line-height: 1.2;
   color: var(--color-neutral-solid-gray-600);
 }
@@ -718,8 +800,8 @@ button {
 /* ===== 操作方法（左下） ===== */
 .help-panel {
   position: absolute;
-  left: 12px;
-  bottom: 16px;
+  left: 8px;
+  bottom: 8px;
   z-index: 11;
   width: 360px;
   max-width: calc(100% - 24px);
@@ -749,11 +831,11 @@ button {
 }
 .help-toggle {
   position: absolute;
-  left: 12px;
-  bottom: 16px;
+  left: 8px;
+  bottom: 8px;
   z-index: 11;
-  min-height: 48px;
-  padding: 0 16px;
+  min-height: 44px;
+  padding: 0 14px;
   border-radius: 8px;
   border: 1px solid var(--color-neutral-solid-gray-800);
   background: var(--color-neutral-white);
@@ -780,17 +862,20 @@ button {
 .frame-label {
   padding: 2px 8px;
   border-radius: 6px;
-  background: var(--color-key-900);
-  color: var(--color-neutral-white);
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid var(--color-key-900);
+  color: var(--color-key-900);
   font-size: 14px;
   white-space: nowrap;
 }
 .frame-label.over {
   background: var(--color-semantic-error-1);
+  border-color: var(--color-semantic-error-1);
+  color: var(--color-neutral-white);
 }
 .nodb-banner {
   position: absolute;
-  top: 76px;
+  top: 64px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 12;
@@ -1194,10 +1279,10 @@ button {
     padding: 8px 12px;
   }
   .left-stack {
-    width: 220px;
+    width: 190px;
   }
   .inspector {
-    width: 300px;
+    width: 240px;
   }
 }
 
