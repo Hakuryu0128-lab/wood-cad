@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { getOrientation } from './geometry'
 
 // 選んでいる板の設定パネル（右上）。
@@ -30,16 +30,39 @@ const ORIENTATIONS = [
   { kind: 'upright', label: '縦に立てる', box: { w: 5, h: 40, d: 20 } },
 ]
 
-export default function Inspector({ board, onChange, onRotate, onOrientation, onToggleLock, onDelete, onDeselect }) {
+export default function Inspector({ board, onChange, onRotate, onOrientation, onToggleLock, onDelete, onDeselect, checkLength }) {
   // たたむと見出しだけの細い帯になり、3Dの作業領域が広がる
   const [collapsed, setCollapsed] = useState(false)
+  // 長さは入力中の値を別に持ち、使える長さのときだけ板に反映する
+  // （以前は入力したそばから反映していたため、生材より長い板や材料が足りない板ができてしまっていた）
+  const [lengthDraft, setLengthDraft] = useState('')
+  const [lengthError, setLengthError] = useState('')
+  const boardId = board?.id
+  const boardLength = board?.length
+  useEffect(() => {
+    setLengthDraft(boardLength == null ? '' : String(boardLength))
+    setLengthError('')
+  }, [boardId, boardLength])
   if (!board) return null
 
   const orientation = getOrientation(board.rotation)
 
   const changeLength = (e) => {
-    const v = Number(e.target.value)
-    if (!Number.isNaN(v) && v > 0) onChange(board.id, { length: v })
+    const text = e.target.value
+    setLengthDraft(text)
+    const v = Number(text)
+    if (text === '' || !Number.isFinite(v) || v <= 0) {
+      setLengthError('長さを入力してください')
+      return
+    }
+    const err = checkLength ? checkLength(board.id, v) : ''
+    setLengthError(err)
+    if (!err) onChange(board.id, { length: v })
+  }
+
+  // 入力欄から離れたとき、使えない値が残っていたら今の板の長さに戻す（理由の表示は残す）
+  const blurLength = () => {
+    if (String(board.length) !== lengthDraft) setLengthDraft(String(board.length))
   }
 
   return (
@@ -90,9 +113,17 @@ export default function Inspector({ board, onChange, onRotate, onOrientation, on
               type="number"
               inputMode="numeric"
               min="1"
-              value={board.length}
+              value={lengthDraft}
               onChange={changeLength}
+              onBlur={blurLength}
+              aria-invalid={lengthError ? 'true' : 'false'}
+              aria-describedby={lengthError ? 'insp-length-error' : undefined}
             />
+            {lengthError && (
+              <p id="insp-length-error" className="field-error" role="alert">
+                {lengthError}
+              </p>
+            )}
           </div>
 
           <div className="field">

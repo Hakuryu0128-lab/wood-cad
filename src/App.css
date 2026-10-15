@@ -1314,3 +1314,27 @@ button {
     display: none;
   }
 }
+
+/* 長さの入力エラー（選択中の板のパネル） */
+.field-error {
+  margin: 4px 0 0;
+  padding: 4px 8px;
+  border-left: 4px solid var(--color-semantic-error-1);
+  background: var(--color-primitive-red-50);
+  color: var(--color-semantic-error-2);
+  font-size: 14px;
+  font-weight: bold;
+  line-height: 1.5;
+}
+.dads-input[aria-invalid='true'] {
+  border-color: var(--color-semantic-error-1);
+}
+.stock-panel-row {
+  flex-wrap: wrap;
+}
+.stock-panel-warn {
+  flex-basis: 100%;
+  color: var(--color-semantic-error-2);
+  font-size: 14px;
+  font-weight: bold;
+}

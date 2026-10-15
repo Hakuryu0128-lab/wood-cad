@@ -22,6 +22,7 @@ export default function StockPanel({ stock = [], boards = [], onOpen }) {
               <BarDiagram key={j} bar={bar} stockLength={u.stockLength} width={100} height={14} />
             ))}
           </div>
+          {!u.fits && <span className="stock-panel-warn">材料が足りません</span>}
         </div>
       ))}
     </button>

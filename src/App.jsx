@@ -467,6 +467,24 @@ export default function App() {
     setSelectedId(id)
   }
 
+  // 選択中の板の長さを変えてよいか調べる。問題がなければ ''、あれば理由の文を返す。
+  // 生材より長い板・材料が足りなくなる長さは板に反映しない（Inspector側で止める）
+  const checkLength = (id, length) => {
+    const b = boards.find((x) => x.id === id)
+    if (!b) return ''
+    const entry = stock.find((s) => s.thickness === b.thickness && s.width === b.width)
+    if (!entry) return ''
+    if (length > entry.stockLength) return `この板の材料は${entry.stockLength}mmまでです`
+    if (entry.quantity == null) return ''
+    const pieces = boards
+      .filter((x) => x.thickness === b.thickness && x.width === b.width)
+      .map((x) => ({ id: x.id, length: x.id === id ? length : x.length }))
+    if (!packBars(pieces, entry.stockLength, entry.quantity).fits) {
+      return '材料が足りないため、この長さにはできません。ほかの板の長さを見直してください。'
+    }
+    return ''
+  }
+
   const updateBoard = (id, patch) => {
     setBoardsDirty((prev) => {
       const next = prev.map((b) => {
@@ -479,20 +497,6 @@ export default function App() {
         }
         return merged
       })
-      // 長さを変えた場合、そのプロファイル（厚み・幅）の在庫に収まっているか確認して警告する
-      // （編集自体はブロックしない。タイピング中に毎回止まるのを避けるため）
-      if (patch.length !== undefined) {
-        const b = next.find((x) => x.id === id)
-        const entry = stock.find((s) => s.thickness === b.thickness && s.width === b.width)
-        if (entry && entry.quantity != null) {
-          const pieces = next
-            .filter((x) => x.thickness === b.thickness && x.width === b.width)
-            .map((x) => ({ id: x.id, length: x.length }))
-          if (!packBars(pieces, entry.stockLength, entry.quantity).fits) {
-            flashMsg('材料が足りません。長さを見直してください', 'warn')
-          }
-        }
-      }
       return next
     })
   }
@@ -720,6 +724,7 @@ export default function App() {
         onToggleLock={toggleLock}
         onDelete={deleteBoard}
         onDeselect={() => setSelectedId(null)}
+        checkLength={checkLength}
       />
 
       <DPad visible={!!selectedBoard && !selectedBoard.locked} onMove={moveSelected} onPlaceOnTop={placeOnTop} onPlaceOnFloor={placeOnFloor} />
