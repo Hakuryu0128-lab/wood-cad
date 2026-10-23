@@ -1,0 +1,7 @@
+{
+  "name": "woodcad-receiver",
+  "private": true,
+  "version": "1.0.0",
+  "description": "木工CAD 受信（風呂敷版）。依存なし。WoodCAD.cmd から起動する",
+  "type": "commonjs"
+}
