@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>木工CAD 受信</title>
+<style>
+  :root {
+    --blue: #0017c1; --blue-dark: #000082; --green: #197a4b; --green-bg: #e6f5ec;
+    --red: #ce0000; --red-bg: #fdeeee; --yellow-bg: #fff8d6; --gray: #4d4d4d; --line: #b3b3b3; --bg: #f2f2f2;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; }
+  body { margin: 0; font-family: 'Yu Gothic UI', 'Hiragino Sans', 'Yu Gothic', system-ui, sans-serif; font-size: 16px;
+         line-height: 1.6; color: #1a1a1a; background: var(--bg); }
+  .page { height: 100dvh; display: grid; grid-template-rows: auto 1fr; }
+  header { background: #fff; border-bottom: 1px solid var(--line); padding: 8px 20px; display: flex; gap: 16px; align-items: center; }
+  header h1 { font-size: 20px; margin: 0; }
+  header .where { color: var(--gray); font-size: 14px; margin-left: auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cols { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; padding: 16px 20px; min-height: 0; }
+  .col { display: flex; flex-direction: column; gap: 12px; min-height: 0; overflow: auto; }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; }
+  .card h2 { font-size: 18px; margin: 0 0 8px; }
+  details.card > summary { font-size: 18px; font-weight: 700; cursor: pointer; list-style: none; display: flex; align-items: center; gap: 8px; min-height: 32px; }
+  details.card > summary::before { content: '▶'; font-size: 12px; color: var(--blue); }
+  details.card[open] > summary::before { content: '▼'; }
+  details.card > summary .badge { margin-left: auto; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 6px 0; }
+  .status { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; align-items: center; margin-bottom: 8px; }
+  .status .k { color: var(--gray); }
+  .badge { display: inline-block; padding: 0 10px; border-radius: 999px; font-size: 14px; font-weight: 700; }
+  .on { background: var(--green-bg); color: var(--green); }
+  .off { background: #e6e6e6; color: var(--gray); }
+  .warn { background: var(--yellow-bg); color: #6b5200; }
+  .ng { background: var(--red-bg); color: var(--red); }
+  button, .btn { font: inherit; font-weight: 700; min-height: 44px; padding: 0 16px; border-radius: 8px; border: 1px solid var(--blue);
+         background: #fff; color: var(--blue); cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; white-space: nowrap; flex: none; }
+  button.primary, .btn.primary { background: var(--blue); color: #fff; }
+  button.primary:hover { background: var(--blue-dark); }
+  button.danger { border-color: var(--red); color: #fff; background: var(--red); }
+  button:disabled { opacity: .45; cursor: default; }
+  :focus-visible { outline: 4px solid #000; outline-offset: 2px; box-shadow: 0 0 0 2px #ffd43d; }
+  label.f { display: flex; flex-direction: column; gap: 2px; font-weight: 700; }
+  label.f small { font-weight: 400; color: var(--gray); }
+  input[type=text], input[type=password], input[type=number] { font: inherit; min-height: 44px; padding: 0 12px; border: 1px solid #666; border-radius: 8px; width: 100%; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }
+  .note { color: var(--gray); font-size: 14px; margin: 4px 0; }
+  .msg { margin: 6px 0 0; padding: 6px 10px; border-radius: 6px; font-size: 14px; display: none; }
+  .msg.show { display: block; }
+  .msg.ok { background: var(--green-bg); color: var(--green); }
+  .msg.err { background: var(--red-bg); color: var(--red); font-weight: 700; }
+  .step { border-left: 4px solid var(--line); padding: 4px 0 4px 12px; margin: 8px 0; }
+  .step.done { border-color: var(--green); }
+  .url { font-family: Consolas, monospace; font-size: 14px; word-break: break-all; }
+  table.checks { width: 100%; border-collapse: collapse; font-size: 14px; }
+  table.checks td { padding: 3px 6px; border-bottom: 1px solid #e6e6e6; vertical-align: top; }
+  #diag td { line-height: 1.4; }
+  #diag .note { margin-left: 8px; font-size: 13px; }
+  table.checks td:first-child { width: 28px; text-align: center; font-weight: 700; }
+  td.y { color: var(--green); } td.n { color: var(--red); }
+  .log { background: #1a1a1a; color: #e6e6e6; font-family: Consolas, monospace; font-size: 12px; line-height: 1.5; padding: 8px; border-radius: 8px;
+         height: 100%; min-height: 160px; overflow: auto; white-space: pre-wrap; word-break: break-all; }
+  .log .err { color: #ff8a8a; }
+  .logcard { flex: 1; display: flex; flex-direction: column; min-height: 220px; }
+  .logcard .log { flex: 1; }
+  .danger-card { border-color: var(--red); }
+  @media (max-width: 900px) { .cols { grid-template-columns: 1fr; } .page { height: auto; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <h1>木工CAD 受信</h1>
+    <span id="topBadge" class="badge off">確認中…</span>
+    <span class="where" id="where"></span>
+  </header>
+
+  <div class="cols">
+    <div class="col">
+      <section class="card">
+        <h2>受付</h2>
+        <div class="status">
+          <span class="k">提出受付</span><span><span id="srvBadge" class="badge off">—</span> <span id="srvNote" class="note"></span></span>
+          <span class="k">外から（生徒のiPad）</span><span><span id="tunBadge" class="badge off">—</span> <span id="tunNote" class="note"></span></span>
+          <span class="k">届いた設計</span><span id="count">—</span>
+        </div>
+        <div class="row">
+          <button class="primary" id="btnStart">受付を始める</button>
+          <button id="btnStop">止める</button>
+          <button id="btnKill" hidden>前のを止めて起動</button>
+          <a class="btn" id="lnkList" href="#" target="_blank" rel="noopener">提出一覧を開く</a>
+        </div>
+        <p class="note">提出一覧は、ほかのPCやiPadからは <span class="url" id="pubUrl"></span> で開けます（パスワードを聞かれます。ユーザー名は何でもかまいません）。</p>
+        <p class="msg" id="msgMain"></p>
+      </section>
+
+      <details class="card" id="secSetup">
+        <summary>はじめての設定 <span id="setupBadge" class="badge off"></span></summary>
+        <div class="grid2">
+          <label class="f">一覧ページのパスワード<small>8文字以上。設定済みのときは、変えるときだけ入れます</small>
+            <input type="password" id="pw" autocomplete="new-password"></label>
+          <label class="f">もう一度<small>確認のため</small>
+            <input type="password" id="pw2" autocomplete="new-password"></label>
+          <label class="f">ポート<small>ふつうは 8010 のまま</small>
+            <input type="number" id="port" min="1024" max="65535"></label>
+          <label class="f" style="justify-content:flex-end"><span><input type="checkbox" id="autoStart"> 開いたら自動で受付を始める</span></label>
+        </div>
+        <div class="row"><button class="primary" id="btnSetup">保存する</button></div>
+        <p class="msg" id="msgSetup"></p>
+      </details>
+
+      <details class="card" id="secTunnel">
+        <summary>外から受け取れるようにする <span id="tunSetupBadge" class="badge off"></span></summary>
+        <p class="note">生徒のiPadからの「先生に送る」をこのPCに届けるための設定です（Cloudflare Tunnel）。1回だけ行います。</p>
+        <div class="step" id="st1"><b>① Cloudflare にログイン</b>
+          <div class="row"><button id="btnLogin">Cloudflare にログイン</button><span id="loginNote" class="note"></span></div>
+          <p class="note">ブラウザが開くので、hakuryu.f5.si を選んで「Authorize」を押します。</p></div>
+        <div class="step" id="st2"><b>② トンネルを用意する</b>
+          <div class="row" style="flex-wrap:nowrap"><input type="text" id="hostname" aria-label="受け取るアドレス"><button id="btnSetupTunnel">用意する</button></div>
+          <p class="note">木工CADの送信先（public/config.json の submitUrl）と同じアドレスにします。1段のサブドメインにしてください。</p></div>
+        <div class="step" id="st3"><b>③ 外からの受付を始める</b>
+          <div class="row"><button class="primary" id="btnTunStart">始める</button><button id="btnTunStop">止める</button></div></div>
+        <p class="msg" id="msgTunnel"></p>
+      </details>
+
+      <details class="card" id="secExport">
+        <summary>提出を持ち出す</summary>
+        <p class="note">届いた設計をまとめて書き出します。1つずつ中身を照合してから「書き出しました」と出します。木工CADの「セーブデータ」→「ファイルから読み込む」で開けます。</p>
+        <div class="row" style="flex-wrap:nowrap"><input type="text" id="dest" placeholder="例: D:\ （USBメモリや外付けSSD）" aria-label="書き出す場所"><button class="primary" id="btnExport">書き出す</button></div>
+        <p class="note" id="lastExport"></p>
+        <p class="msg" id="msgExport"></p>
+      </details>
+
+      <details class="card danger-card" id="secWipe">
+        <summary>このPCから消す</summary>
+        <p class="note">このフォルダを丸ごと消します。<b>元に戻せません。</b>このフォルダの外には何も書いていないので、これで跡は残りません。</p>
+        <div class="row"><button id="btnWipePlan">何が消えるか見る</button></div>
+        <div id="wipeArea" hidden>
+          <table class="checks" id="wipeChecks"></table>
+          <label class="f" style="margin-top:8px">確認のため「このPCから消す」と入れてください<input type="text" id="wipeConfirm"></label>
+          <div class="row"><label><input type="checkbox" id="wipeForce"> 持ち出していないが、それでも消す</label></div>
+          <div class="row"><button class="danger" id="btnWipe">消す</button></div>
+        </div>
+        <p class="msg" id="msgWipe"></p>
+      </details>
+    </div>
+
+    <div class="col">
+      <section class="card">
+        <h2 style="display:flex;align-items:center">診断 <button id="btnDiag" style="margin-left:auto;min-height:36px">もう一度調べる</button></h2>
+        <table class="checks" id="diag"></table>
+      </section>
+      <section class="card logcard">
+        <h2>ログ</h2>
+        <div class="log" id="log" role="log"></div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let state = null;
+const touched = new Set(); // 人が開け閉めした欄には、こちらから触らない（WEEKYで「2秒後に閉じる」を踏んだ）
+
+async function api(path, body) {
+  const r = await fetch(path, body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  try { return await r.json(); } catch { return { ok: false, error: 'エラー（' + r.status + '）' }; }
+}
+function msg(id, text, ok) {
+  const el = $(id);
+  el.textContent = text || '';
+  el.className = 'msg' + (text ? ' show ' + (ok ? 'ok' : 'err') : '');
+}
+function badge(el, cls, text) { el.className = 'badge ' + cls; el.textContent = text; }
+for (const id of ['secSetup', 'secTunnel', 'secExport', 'secWipe']) {
+  $(id).addEventListener('toggle', (e) => { if (e.isTrusted !== false) touched.add(id); });
+  $(id).querySelector('summary').addEventListener('click', () => touched.add(id));
+}
+
+async function refresh() {
+  const s = await api('/api/state');
+  if (!s || !s.home) return;
+  const first = !state;
+  state = s;
+  $('where').textContent = s.home;
+  const t = s.tunnel;
+  badge($('srvBadge'), s.running ? 'on' : 'off', s.running ? '受け付けています' : '止まっています');
+  $('srvNote').textContent = s.running ? `ポート ${s.port}` : (s.configured ? '' : '先に「はじめての設定」を');
+  badge($('tunBadge'), t.connected ? 'on' : (t.running ? 'warn' : 'off'),
+    t.connected ? '届きます' : (t.running ? '接続中…' : (t.configured ? '止まっています' : 'まだ用意していません')));
+  $('tunNote').textContent = t.connected ? s.publicUrl : '';
+  $('count').textContent = `${s.submissions.designs}件`;
+  if (s.running && t.connected) badge($('topBadge'), 'on', '受付中（生徒のiPadから届きます）');
+  else if (s.running) badge($('topBadge'), 'warn', '受付中（このPCだけ。外からはまだ届きません）');
+  else badge($('topBadge'), 'off', '停止中');
+  $('lnkList').href = s.localUrl;
+  $('pubUrl').textContent = s.publicUrl;
+  $('btnKill').hidden = !s.stale;
+  $('btnStart').disabled = !s.configured || (s.running && (t.connected || !t.configured));
+  $('btnStop').disabled = !s.running && !t.running;
+
+  badge($('setupBadge'), s.configured ? 'on' : 'ng', s.configured ? '済み' : 'まだです');
+  if (first) { $('port').value = s.port; $('autoStart').checked = s.autoStart; $('hostname').value = s.hostname; }
+  badge($('tunSetupBadge'), t.configured ? 'on' : 'off', t.configured ? '済み' : 'まだです');
+  $('st1').classList.toggle('done', t.loggedIn);
+  $('st2').classList.toggle('done', t.configured);
+  $('st3').classList.toggle('done', t.connected);
+  $('loginNote').textContent = t.loggedIn ? 'ログイン済みです' : (t.loginRunning ? (t.loginNote || 'ブラウザでの操作を待っています…') : (t.loginNote || ''));
+  $('btnLogin').disabled = t.loggedIn || t.loginRunning || !t.hasExe;
+  $('btnSetupTunnel').disabled = !t.loggedIn;
+  $('btnTunStart').disabled = !t.configured || t.running;
+  $('btnTunStop').disabled = !t.running && !t.wanted;
+  $('lastExport').textContent = s.lastExportAt ? `前回の持ち出し: ${s.lastExportAt} → ${s.lastExportDir}` : 'まだ持ち出していません。';
+
+  // 開け閉めは、人が触っていない欄だけ
+  if (!touched.has('secSetup')) $('secSetup').open = !s.configured;
+  if (!touched.has('secTunnel')) $('secTunnel').open = s.configured && !t.configured;
+}
+
+async function refreshLog() {
+  const r = await api('/api/log?n=200');
+  const el = $('log');
+  const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 20;
+  el.innerHTML = '';
+  for (const l of r.lines || []) {
+    const d = document.createElement('div');
+    if (l.kind === 'err') d.className = 'err';
+    d.textContent = `${l.t} ${l.line}`;
+    el.appendChild(d);
+  }
+  if (atBottom) el.scrollTop = el.scrollHeight;
+}
+async function refreshDiag() {
+  const r = await api('/api/diag');
+  const tb = $('diag');
+  tb.innerHTML = '';
+  for (const c of r.checks || []) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class="${c.ok ? 'y' : 'n'}">${c.ok ? '✓' : '✕'}</td><td></td>`;
+    tr.children[1].innerHTML = `<b></b><span class="note"></span>`;
+    tr.children[1].querySelector('b').textContent = c.name;
+    tr.children[1].querySelector('.note').textContent = c.detail;
+    tb.appendChild(tr);
+  }
+}
+async function act(fn) { await fn(); await refresh(); refreshLog(); refreshDiag(); }
+
+$('btnStart').onclick = () => act(async () => {
+  const r = await api('/api/start', {});
+  if (!r.ok) return msg('msgMain', r.error, false);
+  if (state.tunnel.configured) {
+    const t = await api('/api/tunnel/start', {});
+    if (!t.ok) return msg('msgMain', t.error, false);
+  }
+  msg('msgMain', state.tunnel.configured ? '受付を始めました。外から届くまで数秒かかります' : '受付を始めました（このPCだけ）。外から受け取るには「外から受け取れるようにする」を', true);
+});
+$('btnStop').onclick = () => act(async () => { await api('/api/stop', {}); msg('msgMain', '止めました。生徒が送ると「つながりませんでした」になります', true); });
+$('btnKill').onclick = () => act(async () => { const r = await api('/api/killstale', {}); msg('msgMain', r.ok ? '前のを止めて、起動しました' : r.error, r.ok); });
+$('btnSetup').onclick = () => act(async () => {
+  const r = await api('/api/setup', { password: $('pw').value, password2: $('pw2').value, port: $('port').value, autoStart: $('autoStart').checked });
+  if (r.ok) { $('pw').value = ''; $('pw2').value = ''; }
+  msg('msgSetup', r.ok ? '保存しました（パスワードは保存したものを読み直して確かめました）' : r.error, r.ok);
+});
+$('btnLogin').onclick = () => act(async () => { const r = await api('/api/tunnel/login', {}); msg('msgTunnel', r.ok ? (r.note || 'ブラウザで hakuryu.f5.si を選んでください') : r.error, r.ok); });
+$('btnSetupTunnel').onclick = () => act(async () => {
+  $('btnSetupTunnel').disabled = true;
+  msg('msgTunnel', '用意しています（30秒ほどかかることがあります）…', true);
+  const r = await api('/api/tunnel/setup', { hostname: $('hostname').value });
+  msg('msgTunnel', r.ok ? `用意できました: https://${r.hostname}。③を押してください` : r.error, r.ok);
+});
+$('btnTunStart').onclick = () => act(async () => { const r = await api('/api/tunnel/start', {}); msg('msgTunnel', r.ok ? '始めました。数秒で「届きます」になります' : r.error, r.ok); });
+$('btnTunStop').onclick = () => act(async () => { await api('/api/tunnel/stop', {}); msg('msgTunnel', '外からの受付を止めました', true); });
+$('btnExport').onclick = () => act(async () => {
+  $('btnExport').disabled = true;
+  const r = await api('/api/export', { dest: $('dest').value });
+  $('btnExport').disabled = false;
+  msg('msgExport', r.ok ? `書き出しました（設計${r.designs}件・${r.files}ファイル・${r.size}、中身の照合OK）: ${r.dir}` : r.error, r.ok);
+});
+$('btnWipePlan').onclick = async () => {
+  const r = await api('/api/wipe/plan', {});
+  const tb = $('wipeChecks');
+  tb.innerHTML = '';
+  for (const c of r.checks || []) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class="${c.ok ? 'y' : 'n'}">${c.ok ? '✓' : '！'}</td><td><b></b><br><span class="note"></span></td>`;
+    tr.querySelector('b').textContent = c.name;
+    tr.querySelector('.note').textContent = c.detail;
+    tb.appendChild(tr);
+  }
+  $('wipeArea').hidden = !r.canWipe;
+  $('wipeForce').parentElement.parentElement.hidden = !!r.exported;
+  msg('msgWipe', r.canWipe ? '' : (r.error || '消せません'), false);
+};
+$('btnWipe').onclick = async () => {
+  const r = await api('/api/wipe/run', { confirm: $('wipeConfirm').value.trim(), force: $('wipeForce').checked });
+  if (!r.ok) return msg('msgWipe', r.error, false);
+  document.body.innerHTML = '<div style="padding:40px;font-size:20px">このフォルダを消しています。消し終わると親フォルダが開きます。この画面は閉じてかまいません。</div>';
+};
+$('btnDiag').onclick = refreshDiag;
+
+refresh().then(refreshDiag);
+refreshLog();
+setInterval(refresh, 2000);
+setInterval(refreshLog, 2000);
+setInterval(refreshDiag, 15000);
+</script>
+</body>
+</html>
