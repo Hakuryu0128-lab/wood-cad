@@ -73,6 +73,10 @@ function SaveCard({ save, current, showOwner, onOpen, onDuplicate, onRename, onD
   )
 }
 
+// 「ほかの人のデータも表示する」は、1台のiPadを何人かで使い回すときのためのもの。
+// 1人1台の運用なので、いまは表示しない（2026-10-23）。共用にするときは true に戻す。
+const SHOW_OTHER_USERS_TOGGLE = false
+
 export default function SaveSelect({
   user,
   saves,
@@ -118,10 +122,12 @@ export default function SaveSelect({
           <button className="btn-secondary" onClick={onImport}>
             ファイルから読み込む
           </button>
-          <label className="save-showall">
-            <input type="checkbox" checked={showAll} onChange={(e) => onToggleShowAll(e.target.checked)} />
-            ほかの人のデータも表示する
-          </label>
+          {SHOW_OTHER_USERS_TOGGLE && (
+            <label className="save-showall">
+              <input type="checkbox" checked={showAll} onChange={(e) => onToggleShowAll(e.target.checked)} />
+              ほかの人のデータも表示する
+            </label>
+          )}
         </div>
 
         {saves.length === 0 ? (
