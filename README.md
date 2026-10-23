@@ -6,7 +6,7 @@
 - 本体: React + Vite + three.js（`src/`）
 - 在庫（使える板材）: `public/stock.json`
 - 提出先の設定: `public/config.json` の `submitUrl`（空にすると「先生に送る」ボタンが消える）
-- 提出受付サーバー（学校PC用）: `server/woodcad_submit.py`（Python標準ライブラリだけ）
+- 提出の受け取り（学校PC用・風呂敷版）: `WoodCAD-Receiver/`（`WoodCAD.cmd` を押すだけ。Node標準モジュールだけ。検査は `node WoodCAD-Receiver/tests/t-receiver.js`）
 
 ## 開発
 

@@ -2,9 +2,13 @@ node_modules/
 dist/
 _backup_*/
 *.log
-# 生徒の提出データと、先生用パスワードの入った設定はリポジトリに入れない
-server/config.json
-server/submissions/
+# 生徒の提出データと、設定・資格情報はリポジトリに入れない（受信フォルダの中で作られる）
+WoodCAD-Receiver/data/
+WoodCAD-Receiver/config/
+WoodCAD-Receiver/logs/
+WoodCAD-Receiver/tmp/
+# 同梱する Node と cloudflared は大きいのでリポジトリには入れない（PCで組み立てる）
+WoodCAD-Receiver/runtime/
 # 手元で保存した設計ファイル
 /*.json
 !/package.json
