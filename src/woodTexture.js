@@ -127,3 +127,27 @@ export function makeFaceTextures(grainAxis, length, thickness, width) {
   const zFace = sideGrain(length, thickness, false)
   return [xFace, xFace, yFace, yFace, zFace, zFace]
 }
+
+// 角を加工した板（boardGeometry.js の makeShapedBoardGeometry）用のテクスチャ。
+// その形は面ごとに次のUVを持つ：
+//   0: 上下の面   u = X(mm), v = Z(mm)
+//   1: X向きの側面 u = Z(mm), v = Y(mm)   ※木口のときは 0〜1 に正規化
+//   2: Z向きの側面 u = X(mm), v = Y(mm)   ※木口のときは 0〜1 に正規化
+// mm 単位のUVには、40mm で1枚になるように repeat をかける。
+function grainPerMm(rotate) {
+  const tex = getBaseTexture().clone()
+  tex.needsUpdate = true
+  tex.rotation = rotate ? Math.PI / 2 : 0
+  tex.repeat.set(1 / MM_PER_TILE, 1 / MM_PER_TILE)
+  return tex
+}
+export function makeShapedTextures(grainAxis, length, thickness, width) {
+  if (grainAxis === 'Z') {
+    return [grainPerMm(true), grainPerMm(false), endGrain(length, thickness)]
+  }
+  return [grainPerMm(false), endGrain(width, thickness), grainPerMm(false)]
+}
+// どの面が木口（0〜1に正規化したUVを使う）か
+export function shapedEndFace(grainAxis) {
+  return grainAxis === 'Z' ? 2 : 1
+}

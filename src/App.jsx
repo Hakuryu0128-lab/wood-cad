@@ -38,6 +38,7 @@ import {
 } from './save'
 import * as db from './db'
 import { loadStock, packBars, summarizeStockUsage } from './stock'
+import { checkCorners } from './corners'
 import './App.css'
 
 let nextId = 1
@@ -475,6 +476,8 @@ export default function App() {
     const entry = stock.find((s) => s.thickness === b.thickness && s.width === b.width)
     if (!entry) return ''
     if (length > entry.stockLength) return `この板の材料は${entry.stockLength}mmまでです`
+    // 角の加工が入りきらない長さにはしない
+    if (checkCorners(b.corners, length, b.width)) return '角の加工が大きすぎるため、この長さにはできません。先に角の加工を小さくしてください。'
     if (entry.quantity == null) return ''
     const pieces = boards
       .filter((x) => x.thickness === b.thickness && x.width === b.width)

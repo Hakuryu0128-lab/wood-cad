@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getOrientation } from './geometry'
+import CornerEditor from './CornerEditor'
 
 // 選んでいる板の設定パネル（右上）。
 // 向きは「寝かせる／横に立てる／縦に立てる」を絵で選び、「上から見て90°回す」で向きを変える。
@@ -165,6 +166,8 @@ export default function Inspector({ board, onChange, onRotate, onOrientation, on
               ↺ 上から見て90°回す
             </button>
           </div>
+
+          <CornerEditor board={board} onChange={onChange} />
 
           <button className="dads-btn text-danger md wide" onClick={() => onDelete(board.id)}>
             この板を削除する

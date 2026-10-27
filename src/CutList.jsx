@@ -1,14 +1,17 @@
-import { useMemo } from 'react'
+import { useId, useMemo } from 'react'
 import { summarizeStockUsage } from './stock'
 import { cm } from './space'
+import { cornersSummary, outlinePoints, hasCorners } from './corners'
 
 // 同じ厚み・幅・長さ・木目方向の板をまとめて「◯枚」とカウントする
 function groupBoards(boards) {
   const map = new Map()
   boards.forEach((b) => {
-    const key = `${b.thickness}x${b.width}x${b.length}x${b.grainAxis}`
+    // 角の加工が違う板は別の行にする
+    const corners = hasCorners(b) ? b.corners : null
+    const key = `${b.thickness}x${b.width}x${b.length}x${b.grainAxis}x${JSON.stringify(corners)}`
     if (!map.has(key)) {
-      map.set(key, { thickness: b.thickness, width: b.width, length: b.length, grainAxis: b.grainAxis, count: 0 })
+      map.set(key, { thickness: b.thickness, width: b.width, length: b.length, grainAxis: b.grainAxis, corners, count: 0 })
     }
     map.get(key).count += 1
   })
@@ -16,7 +19,8 @@ function groupBoards(boards) {
 }
 
 // 板1枚分の簡易寸法図（上から見た形＋木目の向き＋寸法）
-function CutDiagram({ length, width, grainAxis }) {
+function CutDiagram({ length, width, grainAxis, corners }) {
+  const clipId = 'cut' + useId().replace(/[^a-zA-Z0-9]/g, '')
   const maxDim = 100
   const scale = maxDim / Math.max(length, width)
   const w = Math.max(length * scale, 10)
@@ -41,8 +45,29 @@ function CutDiagram({ length, width, grainAxis }) {
 
   return (
     <svg width={svgW} height={svgH} viewBox={`0 0 ${svgW} ${svgH}`}>
-      <rect x={pad} y={pad} width={w} height={h} fill="#f1e4c8" stroke="#8a6d3b" strokeWidth="1.5" />
-      {grainLines}
+      {corners ? (
+        <>
+          <defs>
+            <clipPath id={clipId}>
+              <polygon points={outlinePoints(length, width, corners).map(([x, y]) => `${pad + (x + length / 2) * scale},${pad + (width / 2 - y) * scale}`).join(' ')} />
+            </clipPath>
+          </defs>
+          <rect x={pad} y={pad} width={w} height={h} fill="none" stroke="#c8b590" strokeDasharray="3 2" strokeWidth="1" />
+          <g clipPath={`url(#${clipId})`}>
+            <rect x={pad} y={pad} width={w} height={h} fill="#f1e4c8" />
+            {grainLines}
+          </g>
+          <polygon
+            points={outlinePoints(length, width, corners).map(([x, y]) => `${pad + (x + length / 2) * scale},${pad + (width / 2 - y) * scale}`).join(' ')}
+            fill="none" stroke="#8a6d3b" strokeWidth="1.5"
+          />
+        </>
+      ) : (
+        <>
+          <rect x={pad} y={pad} width={w} height={h} fill="#f1e4c8" stroke="#8a6d3b" strokeWidth="1.5" />
+          {grainLines}
+        </>
+      )}
       <text x={pad + w / 2} y={pad - 4} fontSize="9" textAnchor="middle" fill="#5a616b">
         {length}
       </text>
@@ -167,6 +192,7 @@ export default function CutList({ open, boards, stock = [], user, title, space, 
                   <th>幅</th>
                   <th>長さ</th>
                   <th>木目の向き</th>
+                  <th>角の加工</th>
                   <th>枚数</th>
                 </tr>
               </thead>
@@ -175,12 +201,13 @@ export default function CutList({ open, boards, stock = [], user, title, space, 
                   <tr key={i}>
                     <td>{i + 1}</td>
                     <td>
-                      <CutDiagram length={g.length} width={g.width} grainAxis={g.grainAxis} />
+                      <CutDiagram length={g.length} width={g.width} grainAxis={g.grainAxis} corners={g.corners} />
                     </td>
                     <td>{g.thickness}mm</td>
                     <td>{g.width}mm</td>
                     <td>{g.length}mm</td>
                     <td>{g.grainAxis === 'X' ? '長さ方向' : '幅方向'}</td>
+                    <td className="cutlist-corners">{g.corners ? cornersSummary(g.corners) : 'なし'}</td>
                     <td>{g.count}枚</td>
                   </tr>
                 ))}

@@ -1338,3 +1338,35 @@ button {
   font-size: 14px;
   font-weight: bold;
 }
+
+/* ── 角の加工（選択中の板のパネルの中）── */
+.corner-editor { border-top: 1px solid var(--color-neutral-solid-gray-200); padding-top: 6px; }
+.corner-toggle {
+  display: flex; align-items: center; gap: 8px; width: 100%; min-height: 40px; padding: 0;
+  border: 0; background: none; color: var(--color-neutral-solid-gray-900); font: inherit; cursor: pointer; text-align: left;
+}
+.corner-toggle .field-label { white-space: nowrap; flex: none; }
+.corner-toggle .corner-summary {
+  margin-left: auto; font-size: 13px; color: var(--color-neutral-solid-gray-700);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px;
+}
+.corner-figure { position: relative; width: 100%; margin: 2px 0 0; }
+.corner-figure svg { display: block; width: 100%; height: 100%; }
+.corner-hit {
+  position: absolute; transform: translate(-50%, -50%);
+  min-width: 36px; height: 36px; padding: 0 4px; border-radius: 18px;
+  border: 2px solid var(--color-key-900); background: var(--color-neutral-white); color: var(--color-key-900);
+  font-size: 12px; font-weight: bold; cursor: pointer; white-space: nowrap;
+}
+.corner-hit::after { content: ''; position: absolute; inset: -4px; }
+.corner-hit.is-on { background: var(--color-key-900); color: var(--color-neutral-white); }
+.corner-note { margin: 4px 0; font-size: 12px; line-height: 1.5; color: var(--color-neutral-solid-gray-700); }
+.corner-row { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
+.corner-which { font-size: 14px; font-weight: bold; }
+.segmented.three { grid-template-columns: repeat(3, 1fr); }
+.inspector .segmented.three button { font-size: 13px; padding: 0 2px; white-space: nowrap; }
+.corner-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
+.corner-input { display: flex; flex-direction: column; gap: 2px; font-size: 13px; font-weight: bold; }
+.corner-input .dads-input { width: 100%; padding: 0 8px; }
+.corner-editor .dads-btn.wide { margin-top: 6px; }
+.cutlist-corners { font-size: 12px; color: var(--color-neutral-solid-gray-700); }
