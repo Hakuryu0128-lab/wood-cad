@@ -1,15 +1,46 @@
 import { useEffect, useState } from 'react'
 import {
   CORNER_NAMES, R_DEFAULT, C_DEFAULT, ANGLE_DEFAULT, ANGLE_MIN, ANGLE_MAX,
-  checkCorners, cornerLabel, cornerLegs, outlinePoints, cornersSummary,
+  checkCorners, cornerLabel, cornerLegs, outlinePoints,
 } from './corners'
+import { projectBoardFace, fitPoints } from './cornerView'
 
 // 板の角の加工（R＝丸め／C＝面取り）を決める欄。選択中の板のパネルの中に置く。
-// 板の面を「長さを横・幅を縦」にした絵の4つの角をタップして選び、加工と大きさを決める。
-// 絵の上側が、「横に立てる」にしたときに上になる側。
-export default function CornerEditor({ board, onChange }) {
-  const [open, setOpen] = useState(false)
-  const [sel, setSel] = useState(0)
+//
+// ★絵は「いま画面に見えている向き」で描く★（2026-10-28）
+// 以前は板の形をいつも同じ向き（長さを横）で描いていたので、板を回したり立てたりすると
+// 絵のどの角が3Dのどの角か分からなくなっていた。いまのカメラで板の面を写した形を描くので、
+// 絵の右上の角は、画面で見て右上にある角になる。選んだ角は3Dの板の上でも光る。
+// 板を真横から見ていて面が潰れるときだけ、板の形のまま（長さを横）で描く。
+export default function CornerEditor({ board, onChange, embedded = false, sel: selProp, onSel, cameraRef }) {
+  // タブの中に置くとき（embedded）は、たたまずに最初から開いておく
+  const [open, setOpen] = useState(embedded)
+  // 選んでいる角は、3Dの板を押して選ぶこともあるので外（App）に持つ。渡されなければ自分で持つ
+  const [selLocal, setSelLocal] = useState(0)
+  const sel = selProp ?? selLocal
+  const setSel = onSel || setSelLocal
+  // いまのカメラで写した板の形。カメラは毎フレーム動くので、少しずつ見に行く
+  const [view, setView] = useState(null)
+  const viewKey = JSON.stringify([board.length, board.width, board.rotation, board.position, board.corners])
+  useEffect(() => {
+    if (!open || !cameraRef) return undefined
+    let last = ''
+    const tick = () => {
+      const cam = cameraRef.current
+      const v = projectBoardFace(board, cam)
+      const aspect = cam?.aspect || 1
+      if (v.ok) {
+        v.outline = v.outline.map(([x, y]) => [x * aspect, y])
+        v.corners = v.corners.map(([x, y]) => [x * aspect, y])
+      }
+      const key = v.ok ? JSON.stringify([v.outline, v.corners].flat(2).map((n) => Math.round(n * 400))) : 'flat'
+      if (key !== last) { last = key; setView(v.ok ? v : null) }
+    }
+    tick()
+    const t = setInterval(tick, 150)
+    return () => clearInterval(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, cameraRef, viewKey])
   const [draft, setDraft] = useState({ size: '', angle: '' })
   const [error, setError] = useState('')
   const corners = Array.isArray(board.corners) ? board.corners : [null, null, null, null]
@@ -51,32 +82,47 @@ export default function CornerEditor({ board, onChange }) {
   }
   const copyToAll = () => apply([cur, cur, cur, cur].map((c) => (c ? { ...c } : null)))
 
-  // 絵：板の縦横比に合わせて、横 200 × 縦 最大 110 に収める
-  const W = 200, H = 110, PAD = 22
-  const scale = Math.min((W - PAD * 2) / board.length, (H - PAD * 2) / board.width)
-  const w = board.length * scale, h = board.width * scale
-  const ox = (W - w) / 2, oy = (H - h) / 2
-  const pts = outlinePoints(board.length, board.width, corners, 10)
-    .map(([x, y]) => `${(ox + (x + board.length / 2) * scale).toFixed(1)},${(oy + (board.width / 2 - y) * scale).toFixed(1)}`)
-    .join(' ')
-  const cornerPos = [[ox, oy], [ox + w, oy], [ox + w, oy + h], [ox, oy + h]]
-  const summary = cornersSummary(board.corners)
+  // 絵：横 200 × 縦 110 の枠に収める
+  const W = 200, H = 120, PAD = 22
+  let outlinePts, cornerPos, flatBox = null
+  if (view) {
+    const [o, c] = fitPoints([view.outline, view.corners], W, H, PAD)
+    outlinePts = o
+    cornerPos = c
+  } else {
+    const scale = Math.min((W - PAD * 2) / board.length, (H - PAD * 2) / board.width)
+    const w = board.length * scale, h = board.width * scale
+    const ox = (W - w) / 2, oy = (H - h) / 2
+    flatBox = { ox, oy, w, h }
+    outlinePts = outlinePoints(board.length, board.width, corners, 10).map(([x, y]) => [ox + (x + board.length / 2) * scale, oy + (board.width / 2 - y) * scale])
+    cornerPos = [[ox, oy], [ox + w, oy], [ox + w, oy + h], [ox, oy + h]]
+  }
+  const pts = outlinePts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ')
+  const doneCount = corners.filter(Boolean).length
   const legs = cornerLegs(cur)
 
   return (
     <div className="field corner-editor">
-      <button className="corner-toggle" aria-expanded={open} onClick={() => setOpen(!open)}>
-        <span className="field-label">角の加工</span>
-        <span className="corner-summary">{summary || 'なし'}</span>
-        <span aria-hidden="true">{open ? '▲' : '▼'}</span>
-      </button>
+      {embedded ? (
+        <p className="corner-head"><span className="field-label">角の加工</span><span className="corner-summary">{doneCount ? `${doneCount}か所` : 'なし'}</span></p>
+      ) : (
+        <button className="corner-toggle" aria-expanded={open} onClick={() => setOpen(!open)}>
+          <span className="field-label">角の加工</span>
+          <span className="corner-summary">{doneCount ? `${doneCount}か所` : 'なし'}</span>
+          <span aria-hidden="true">{open ? '▲' : '▼'}</span>
+        </button>
+      )}
       {open && (
         <>
           <div className="corner-figure" style={{ aspectRatio: `${W} / ${H}` }}>
             <svg viewBox={`0 0 ${W} ${H}`} aria-hidden="true">
-              <rect x={ox} y={oy} width={w} height={h} fill="none" stroke="#b3b3b3" strokeDasharray="3 3" />
+              {flatBox ? (
+                <rect x={flatBox.ox} y={flatBox.oy} width={flatBox.w} height={flatBox.h} fill="none" stroke="#b3b3b3" strokeDasharray="3 3" />
+              ) : (
+                <polygon points={cornerPos.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ')} fill="none" stroke="#b3b3b3" strokeDasharray="3 3" />
+              )}
               <polygon points={pts} fill="#e8c08a" stroke="#4d4d4d" strokeWidth="1.2" />
-              <text x={W / 2} y={oy + h / 2 + 4} fontSize="10" textAnchor="middle" fill="#4d4d4d">長さ {board.length}mm</text>
+              {flatBox && <text x={W / 2} y={flatBox.oy + flatBox.h / 2 + 4} fontSize="10" textAnchor="middle" fill="#4d4d4d">長さ {board.length}mm</text>}
             </svg>
             {cornerPos.map(([x, y], i) => (
               <button
@@ -91,11 +137,15 @@ export default function CornerEditor({ board, onChange }) {
               </button>
             ))}
           </div>
-          <p className="corner-note">絵の上側が、「横に立てる」にしたときに上になる側です。</p>
+          <p className="corner-note">
+            {view
+              ? '画面に見えている向きで描いています。角を押して選ぶと、3Dの板の上でも黄色く光ります。3Dの板の角を押して選ぶこともできます。'
+              : '板を真横から見ているので、板の形のまま（長さを横）で描いています。角を押すと、3Dの板の上で黄色く光ります。'}
+          </p>
 
           <div className="corner-row">
-            <span className="corner-which">{CORNER_NAMES[sel]}の角</span>
-            <div className="segmented three" role="group" aria-label={`${CORNER_NAMES[sel]}の角の加工`}>
+            <span className="corner-which"><span className="corner-dot" aria-hidden="true" />選んだ角（黄色く光っている角）</span>
+            <div className="segmented three" role="group" aria-label="選んだ角の加工">
               {[['none', 'なし'], ['R', 'R 丸め'], ['C', 'C 面取り']].map(([t, label]) => {
                 const on = (cur ? cur.type : 'none') === t
                 return (
@@ -108,7 +158,7 @@ export default function CornerEditor({ board, onChange }) {
           {cur && (
             <div className="corner-inputs">
               <label className="corner-input">
-                <span>{cur.type === 'R' ? '半径（mm）' : '横の長さ（mm）'}</span>
+                <span>{cur.type === 'R' ? '半径（mm）' : '長さ方向（mm）'}</span>
                 <input className="dads-input" type="number" inputMode="decimal" min="1" value={draft.size}
                   aria-invalid={error ? 'true' : 'false'} onChange={(e) => onNumber('size', e.target.value)} />
               </label>
@@ -122,7 +172,7 @@ export default function CornerEditor({ board, onChange }) {
             </div>
           )}
           {cur?.type === 'C' && !error && (
-            <p className="corner-note">横 {Math.round(legs.lx * 10) / 10}mm・縦 {Math.round(legs.lz * 10) / 10}mm を斜めに切り落とします（角度は横の辺から測ります。45°で縦横が同じ）。</p>
+            <p className="corner-note">板の長さ方向に {Math.round(legs.lx * 10) / 10}mm、幅方向に {Math.round(legs.lz * 10) / 10}mm を斜めに切り落とします（角度は長さ方向の辺から測ります。45°で両方が同じ）。</p>
           )}
           {error && <p className="field-error" role="alert">{error}</p>}
           {cur && (

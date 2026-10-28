@@ -124,3 +124,20 @@ export function canAddLength(stock, boards, { thickness, width, length }) {
   pieces.push({ id: '__candidate__', length })
   return packBars(pieces, entry.stockLength, entry.quantity).fits
 }
+
+// いま、そのプロファイルに追加できるいちばん長い長さ（mm・整数）。追加できなければ 0。
+// 数量無制限なら生材の長さ。切りしろ込みで実際に詰め込めるかを、二分探索で調べる。
+export function maxAddableLength(stock, boards, { thickness, width }) {
+  const entry = stock.find((s) => s.thickness === thickness && s.width === width)
+  if (!entry) return 0
+  if (entry.quantity == null) return entry.stockLength
+  const can = (len) => canAddLength(stock, boards, { thickness, width, length: len })
+  if (!can(1)) return 0
+  let lo = 1, hi = Math.floor(entry.stockLength)
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2)
+    if (can(mid)) lo = mid
+    else hi = mid - 1
+  }
+  return lo
+}

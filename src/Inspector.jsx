@@ -31,9 +31,13 @@ const ORIENTATIONS = [
   { kind: 'upright', label: '縦に立てる', box: { w: 5, h: 40, d: 20 } },
 ]
 
-export default function Inspector({ board, onChange, onRotate, onOrientation, onToggleLock, onDelete, onDeselect, checkLength }) {
+export default function Inspector({ board, onChange, onRotate, onOrientation, onToggleLock, onDelete, onDeselect, checkLength, tab: tabProp, onTab, cornerSel, onCornerSel, cameraRef }) {
   // たたむと見出しだけの細い帯になり、3Dの作業領域が広がる
   const [collapsed, setCollapsed] = useState(false)
+  // パネルを短くするため、内容を3つのタブに分けて、選んだタブだけを出す
+  const [tabLocal, setTabLocal] = useState('orient')
+  const tab = tabProp ?? tabLocal
+  const setTab = onTab || setTabLocal
   // 長さは入力中の値を別に持ち、使える長さのときだけ板に反映する
   // （以前は入力したそばから反映していたため、生材より長い板や材料が足りない板ができてしまっていた）
   const [lengthDraft, setLengthDraft] = useState('')
@@ -104,6 +108,41 @@ export default function Inspector({ board, onChange, onRotate, onOrientation, on
         </>
       ) : (
         <>
+          <div className="insp-tabs" role="tablist" aria-label="設定する内容">
+            {[['orient', '向き'], ['size', '長さ・木目'], ['corner', '角']].map(([k, label]) => (
+              <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'is-on' : ''} onClick={() => setTab(k)}>
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {tab === 'orient' && (
+            <div role="tabpanel" aria-label="向き">
+          <div className="field">
+            <span className="field-label">板の向き</span>
+            <div className="orient-grid" role="group" aria-label="板の向き">
+              {ORIENTATIONS.map((o) => (
+                <button
+                  key={o.kind}
+                  className={`orient-btn ${orientation === o.kind ? 'is-on' : ''}`}
+                  aria-pressed={orientation === o.kind}
+                  onClick={() => onOrientation(board.id, o.kind)}
+                >
+                  <IsoBox {...o.box} highlight={orientation === o.kind} />
+                  <span>{o.label}</span>
+                </button>
+              ))}
+            </div>
+            <button className="dads-btn outline md wide" onClick={() => onRotate(board.id, 'y', 90)}>
+              ↺ 上から見て90°回す
+            </button>
+          </div>
+
+            </div>
+          )}
+
+          {tab === 'size' && (
+            <div role="tabpanel" aria-label="長さ・木目">
           <div className="field">
             <label className="field-label" htmlFor="insp-length">
               長さ（mm）
@@ -147,27 +186,15 @@ export default function Inspector({ board, onChange, onRotate, onOrientation, on
             </div>
           </div>
 
-          <div className="field">
-            <span className="field-label">板の向き</span>
-            <div className="orient-grid" role="group" aria-label="板の向き">
-              {ORIENTATIONS.map((o) => (
-                <button
-                  key={o.kind}
-                  className={`orient-btn ${orientation === o.kind ? 'is-on' : ''}`}
-                  aria-pressed={orientation === o.kind}
-                  onClick={() => onOrientation(board.id, o.kind)}
-                >
-                  <IsoBox {...o.box} highlight={orientation === o.kind} />
-                  <span>{o.label}</span>
-                </button>
-              ))}
             </div>
-            <button className="dads-btn outline md wide" onClick={() => onRotate(board.id, 'y', 90)}>
-              ↺ 上から見て90°回す
-            </button>
-          </div>
+          )}
 
-          <CornerEditor board={board} onChange={onChange} />
+          {tab === 'corner' && (
+            <div role="tabpanel" aria-label="角">
+          <CornerEditor board={board} onChange={onChange} embedded sel={cornerSel} onSel={onCornerSel} cameraRef={cameraRef} />
+
+            </div>
+          )}
 
           <button className="dads-btn text-danger md wide" onClick={() => onDelete(board.id)}>
             この板を削除する

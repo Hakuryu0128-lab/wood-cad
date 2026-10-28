@@ -1370,3 +1370,98 @@ button {
 .corner-input .dads-input { width: 100%; padding: 0 8px; }
 .corner-editor .dads-btn.wide { margin-top: 6px; }
 .cutlist-corners { font-size: 12px; color: var(--color-neutral-solid-gray-700); }
+
+/* ══ 2026-10-27 画面の整理 ══ */
+
+/* 上のバーの左：「木工CAD 設計1 ▼」メニュー */
+.design-menu { position: relative; min-width: 0; }
+.design-menu-btn {
+  position: relative; display: flex; align-items: baseline; gap: 8px; min-height: 44px; max-width: 46vw;
+  padding: 0 10px; margin-left: -10px; border: 0; border-radius: 8px; background: none; cursor: pointer;
+  color: var(--color-neutral-solid-gray-900); font: inherit;
+}
+.design-menu-btn:hover { background: var(--color-neutral-solid-gray-50); }
+.design-menu-app { font-size: 18px; font-weight: bold; white-space: nowrap; }
+.design-menu-title {
+  font-size: 16px; color: var(--color-neutral-solid-gray-700); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.design-menu-caret { font-size: 11px; color: var(--color-key-900); }
+.design-menu-list {
+  position: absolute; top: calc(100% + 4px); left: -10px; z-index: 30; min-width: 260px; padding: 6px;
+  background: var(--color-neutral-white); border: 1px solid var(--color-neutral-solid-gray-420); border-radius: 12px;
+  box-shadow: var(--elevation-2, 0 4px 16px rgba(0,0,0,.18)); display: flex; flex-direction: column;
+}
+.design-menu-list > button {
+  min-height: 44px; padding: 0 12px; border: 0; border-radius: 8px; background: none; text-align: left;
+  font: inherit; font-size: 16px; color: var(--color-neutral-solid-gray-900); cursor: pointer;
+}
+.design-menu-list > button:hover, .design-menu-list > button:active { background: var(--color-key-50, #e8f1fe); }
+.design-menu-user { padding: 6px 12px 8px; font-size: 14px; color: var(--color-neutral-solid-gray-700); border-bottom: 1px solid var(--color-neutral-solid-gray-200); margin-bottom: 4px; }
+.design-menu-rename { display: flex; flex-direction: column; gap: 6px; padding: 6px; }
+.design-menu-rename label { font-size: 14px; font-weight: bold; }
+
+/* 左上の「チェック」 */
+.check-panel { padding: 6px 6px 4px; }
+.check-title { font-size: 14px; font-weight: bold; color: var(--color-neutral-solid-gray-700); margin: 0 4px 2px; }
+.check-row {
+  display: flex; align-items: flex-start; gap: 6px; width: 100%; min-height: 44px; padding: 6px 4px;
+  border: 0; border-radius: 8px; background: none; text-align: left; font: inherit; color: inherit; cursor: pointer;
+}
+.check-row + .check-row { border-top: 1px solid var(--color-neutral-solid-gray-200); border-radius: 0 0 8px 8px; }
+.check-row:active { background: var(--color-neutral-solid-gray-50); }
+.check-mark {
+  flex: none; width: 22px; height: 22px; border-radius: 11px; display: inline-flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: bold; background: var(--color-neutral-solid-gray-200); color: var(--color-neutral-solid-gray-700);
+}
+.check-row.ok .check-mark { background: var(--color-semantic-success-1, #197a4b); color: #fff; }
+.check-row.ng .check-mark { background: var(--color-semantic-error-1); color: #fff; }
+.check-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.check-text { font-size: 14px; font-weight: bold; line-height: 1.4; }
+.check-row.ng .check-text { color: var(--color-semantic-error-2); }
+.check-sub { font-size: 12px; line-height: 1.4; color: var(--color-neutral-solid-gray-700); }
+.check-bars { display: flex; flex-direction: column; gap: 2px; }
+.check-bar-row { display: flex; align-items: center; gap: 4px; }
+.check-bar-label { font-size: 11px; min-width: 42px; color: var(--color-neutral-solid-gray-700); }
+.check-go { flex: none; align-self: center; color: var(--color-key-900); font-size: 18px; }
+
+/* 選択中の板：タブ */
+.insp-tabs {
+  display: grid; grid-template-columns: repeat(3, 1fr); margin: 2px 0 8px;
+  border-bottom: 2px solid var(--color-neutral-solid-gray-200);
+}
+.insp-tabs button {
+  position: relative; min-height: 40px; padding: 0 2px; border: 0; background: none; cursor: pointer;
+  font: inherit; font-size: 14px; font-weight: bold; color: var(--color-neutral-solid-gray-700); white-space: nowrap;
+}
+.insp-tabs button.is-on { color: var(--color-key-900); }
+.insp-tabs button.is-on::after {
+  content: ''; position: absolute; left: 4px; right: 4px; bottom: -2px; height: 4px; border-radius: 2px; background: var(--color-key-900);
+}
+.corner-head { display: flex; align-items: center; gap: 8px; margin: 0 0 2px; }
+.corner-head .corner-summary { margin-left: auto; font-size: 13px; color: var(--color-neutral-solid-gray-700); }
+.inspector .corner-editor { border-top: 0; padding-top: 0; }
+
+/* 操作方法 */
+.help-ok { margin-top: 4px; }
+
+/* 板を追加：いま追加できる長さ */
+.profile-chip-max { font-size: 14px; font-weight: bold; color: var(--color-key-900); }
+.profile-chip-max.none { color: var(--color-neutral-solid-gray-536, #767676); }
+.add-max { margin: -4px 0 8px; font-size: 14px; color: var(--color-neutral-solid-gray-800); }
+
+/* メニューが左のチェックより上に出るように、上のバーを一段上に */
+.toolbar { z-index: 20; }
+
+/* 縦向きのiPadなど幅の狭い画面：メニューは左のまま、右のパネルが画面からはみ出さないように */
+@media (max-width: 1000px) {
+  .toolbar { justify-content: space-between; }
+  .design-menu-btn { max-width: 34vw; }
+  .inspector { width: 256px; max-width: calc(100% - 16px); }
+}
+.orient-grid > .orient-btn { min-width: 0; }
+.orient-btn svg { width: 100%; max-width: 64px; height: auto; }
+.inspector-header { min-width: 0; }
+
+/* 選んだ角（3Dで黄色く光っている角）の印 */
+.corner-dot { display: inline-block; width: 12px; height: 12px; margin-right: 6px; border-radius: 6px; background: #ffd43d; border: 2px solid #b36b00; vertical-align: -1px; }
+.corner-hit.is-on { background: #ffd43d; color: #1a1a1a; border-color: #b36b00; box-shadow: 0 0 0 4px rgba(255, 212, 61, .45); }

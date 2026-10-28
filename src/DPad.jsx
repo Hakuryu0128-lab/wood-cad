@@ -6,8 +6,8 @@ import { useState } from 'react'
 const STEP = 10 // mm = 1cm
 
 export default function DPad({ visible, onMove, onPlaceOnTop, onPlaceOnFloor }) {
-  // たたむと見出しだけになる（3Dの作業領域を広げたいとき）
-  const [collapsed, setCollapsed] = useState(false)
+  // ふだんはたたんでおく（板はドラッグで動かすのが基本。細かく合わせたいときだけ開く）
+  const [collapsed, setCollapsed] = useState(true)
   if (!visible) return null
 
   if (collapsed) {

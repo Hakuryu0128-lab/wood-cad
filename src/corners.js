@@ -56,16 +56,16 @@ export function checkCorners(corners, length, width) {
   if (!Array.isArray(corners)) return ''
   for (let i = 0; i < 4; i++) {
     const e = checkCorner(corners[i])
-    if (e) return `${CORNER_NAMES[i]}：${e}`
+    if (e) return e
   }
   const L = corners.map(cornerLegs)
   const EPS = 0.01
   // 上の辺（左上・右上）と下の辺（左下・右下）は長さ方向
-  if (L[0].lx + L[1].lx > length + EPS) return `上の辺（長さ ${length}mm）に、左上と右上の加工が入りきりません`
-  if (L[3].lx + L[2].lx > length + EPS) return `下の辺（長さ ${length}mm）に、左下と右下の加工が入りきりません`
+  if (L[0].lx + L[1].lx > length + EPS) return `長さ方向の辺（${length}mm）の両はしの角の加工が、ぶつかって入りきりません`
+  if (L[3].lx + L[2].lx > length + EPS) return `長さ方向の辺（${length}mm）の両はしの角の加工が、ぶつかって入りきりません`
   // 左の辺（左上・左下）と右の辺（右上・右下）は幅方向
-  if (L[0].lz + L[3].lz > width + EPS) return `左の辺（幅 ${width}mm）に、左上と左下の加工が入りきりません`
-  if (L[1].lz + L[2].lz > width + EPS) return `右の辺（幅 ${width}mm）に、右上と右下の加工が入りきりません`
+  if (L[0].lz + L[3].lz > width + EPS) return `幅方向の辺（${width}mm）の両はしの角の加工が、ぶつかって入りきりません`
+  if (L[1].lz + L[2].lz > width + EPS) return `幅方向の辺（${width}mm）の両はしの角の加工が、ぶつかって入りきりません`
   return ''
 }
 

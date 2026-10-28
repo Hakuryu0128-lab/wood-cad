@@ -5,11 +5,11 @@ import AddBoardPanel from './AddBoardPanel'
 import Inspector from './Inspector'
 import DPad from './DPad'
 import CutList from './CutList'
-import StockPanel from './StockPanel'
+import CheckPanel from './CheckPanel'
+import DesignMenu from './DesignMenu'
 import StockModal from './StockModal'
 import UserModal from './UserModal'
 import SpaceSheet from './SpaceSheet'
-import SpacePanel from './SpacePanel'
 import PartsList from './PartsList'
 import HelpPanel from './HelpPanel'
 import SaveSelect from './SaveSelect'
@@ -68,6 +68,22 @@ export default function App() {
   const [screen, setScreen] = useState('loading')
   const [dbOk, setDbOk] = useState(true)
   const [user, setUser] = useState(null) // いま使っている人
+  // 操作方法：はじめて開いたときだけ自動で出す（その後はメニューの「操作方法を見る」から）
+  const [helpOpen, setHelpOpen] = useState(() => {
+    try { return !localStorage.getItem('wood-cad-help-seen-v1') } catch { return true }
+  })
+  const closeHelp = () => {
+    setHelpOpen(false)
+    try { localStorage.setItem('wood-cad-help-seen-v1', '1') } catch {}
+  }
+  // 右のパネルのタブと、角の加工で選んでいる角。3Dの板の角を押して選べるように、ここで持つ
+  const [inspectorTab, setInspectorTab] = useState('orient')
+  const [cornerSel, setCornerSel] = useState(0)
+  const pickCorner = (id, idx) => {
+    setSelectedId(id)
+    setInspectorTab('corner')
+    setCornerSel(idx)
+  }
   const [slot, setSlot] = useState(null) // 開いているセーブデータ { id, title, num, name, createdAt }
   const [saves, setSaves] = useState([])
   const [showAll, setShowAll] = useState(false)
@@ -641,39 +657,29 @@ export default function App() {
   return (
     <div className="app">
       <header className="toolbar">
-        <div className="toolbar-title">
-          木工CAD{slot && <span className="toolbar-slot">｜{slot.title}</span>}
-        </div>
+        <DesignMenu
+          title={slot?.title}
+          user={user}
+          dbOk={dbOk}
+          onOpenSaves={openSaves}
+          onImport={handleImportClick}
+          onExport={handleExport}
+          onRename={slot ? (t) => handleRename(slot.id, t) : null}
+          onChangeUser={() => setUserOpen(true)}
+          onHelp={() => setHelpOpen(true)}
+        />
         <div className="toolbar-actions">
-          {user && (
-            <button className="user-chip" onClick={() => setUserOpen(true)} title="番号・名前を変える">
-              {user.num} {user.name}
-            </button>
-          )}
           {saveMsg && <span className={saveMsgType === 'warn' ? 'warn-msg' : 'save-msg'}>{saveMsg}</span>}
-          {dbOk ? (
-            <button className="btn-secondary" onClick={openSaves}>
-              セーブデータ
-            </button>
-          ) : (
-            <button className="btn-secondary" onClick={handleImportClick}>
-              開く
-            </button>
-          )}
-          {!appConfig.submitUrl && (
-            <button className="btn-secondary" onClick={handleExport} title="ファイルに書き出す（提出・持ち帰り用）">
-              書き出し
-            </button>
-          )}
           <button className="btn-secondary" onClick={() => setCutListOpen(true)}>
             木取り表
           </button>
-          <button className="btn-secondary" onClick={() => setSpaceOpen(true)}>
-            置き場所
-          </button>
-          {appConfig.submitUrl && (
+          {appConfig.submitUrl ? (
             <button className="btn-send" onClick={openSubmit}>
               先生に送る
+            </button>
+          ) : (
+            <button className="btn-secondary" onClick={handleExport} title="ファイルに書き出す（提出・持ち帰り用）">
+              書き出し
             </button>
           )}
           <button className="btn-primary" onClick={() => setAddOpen(true)}>
@@ -701,6 +707,9 @@ export default function App() {
         outsideIds={spaceCheck.outsideIds}
         captureRef={captureRef}
         cameraRef={cameraRef}
+        cornerMode={!!selectedBoard && !selectedBoard.locked && inspectorTab === 'corner'}
+        cornerSel={cornerSel}
+        onPickCorner={pickCorner}
       />
 
       {!dbOk && screen === 'edit' && (
@@ -712,12 +721,18 @@ export default function App() {
       )}
 
       <div className="left-stack">
-        <StockPanel stock={stock} boards={boards} onOpen={() => setStockModalOpen(true)} />
-        <SpacePanel space={space} check={spaceCheck} onOpen={() => setSpaceOpen(true)} />
+        <CheckPanel
+          stock={stock}
+          boards={boards}
+          space={space}
+          check={spaceCheck}
+          onOpenStock={() => setStockModalOpen(true)}
+          onOpenSpace={() => setSpaceOpen(true)}
+        />
         <PartsList boards={boards} selectedId={selectedId} outsideIds={spaceCheck.outsideIds} onSelect={setSelectedId} />
       </div>
 
-      {screen === 'edit' && <HelpPanel />}
+      {screen === 'edit' && helpOpen && !needUser && <HelpPanel onClose={closeHelp} />}
 
       <Inspector
         board={selectedBoard}
@@ -728,6 +743,11 @@ export default function App() {
         onDelete={deleteBoard}
         onDeselect={() => setSelectedId(null)}
         checkLength={checkLength}
+        tab={inspectorTab}
+        onTab={setInspectorTab}
+        cornerSel={cornerSel}
+        onCornerSel={setCornerSel}
+        cameraRef={cameraRef}
       />
 
       <DPad visible={!!selectedBoard && !selectedBoard.locked} onMove={moveSelected} onPlaceOnTop={placeOnTop} onPlaceOnFloor={placeOnFloor} />

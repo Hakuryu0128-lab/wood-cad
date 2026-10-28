@@ -66,7 +66,7 @@ function makeCapture(gl, scene, camera) {
   }
 }
 
-function SceneContents({ boards, selectedId, onSelect, onMoveBoardXZ, onDragEnd, space, spaceCheck, outsideIds, captureRef, cameraRef }) {
+function SceneContents({ boards, selectedId, onSelect, onMoveBoardXZ, onDragEnd, space, spaceCheck, outsideIds, captureRef, cameraRef, cornerMode, cornerSel, onPickCorner }) {
   const { camera, gl, scene } = useThree()
   useEffect(() => {
     if (captureRef) captureRef.current = makeCapture(gl, scene, camera)
@@ -276,6 +276,9 @@ function SceneContents({ boards, selectedId, onSelect, onMoveBoardXZ, onDragEnd,
           outside={outsideIds.has(b.id)}
           onSelect={onSelect}
           onDragStart={handleDragStart}
+          cornerMode={cornerMode && b.id === selectedId}
+          cornerSel={cornerSel}
+          onPickCorner={onPickCorner}
         />
       ))}
 
@@ -328,7 +331,7 @@ function SceneContents({ boards, selectedId, onSelect, onMoveBoardXZ, onDragEnd,
 }
 
 // 単位は mm。作業台は400mm四方を想定。
-export default function Scene({ boards, selectedId, onSelect, onDeselect, onMoveBoardXZ, onDragEnd, space, spaceCheck, outsideIds, captureRef, cameraRef }) {
+export default function Scene({ boards, selectedId, onSelect, onDeselect, onMoveBoardXZ, onDragEnd, space, spaceCheck, outsideIds, captureRef, cameraRef, cornerMode, cornerSel, onPickCorner }) {
   return (
     <Canvas
       shadows
@@ -346,6 +349,9 @@ export default function Scene({ boards, selectedId, onSelect, onDeselect, onMove
         outsideIds={outsideIds}
         captureRef={captureRef}
         cameraRef={cameraRef}
+        cornerMode={cornerMode}
+        cornerSel={cornerSel}
+        onPickCorner={onPickCorner}
       />
     </Canvas>
   )
